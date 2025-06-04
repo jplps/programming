@@ -1,0 +1,240 @@
+#+title: Lisp Fundamentals
+#+author: jplps
+#+date: 2024-02-15
+
+* Introduction to Lisp
+  Lisp (LISt Processing) is a family of programming languages with a long history and a distinctive, fully parenthesized prefix notation. Lisp is known for its simple syntax and powerful features, including:
+
+  1. *Code as Data (Homoiconicity)*: Lisp programs are written as lists, which makes it easy to manipulate code as data.
+  2. *Macros*: Allow you to create new syntactic constructs in a flexible way.
+  3. *Garbage Collection*: Automatic memory management.
+  4. *Dynamic Typing*: Variables can hold any type of data.
+
+* Basic Syntax
+  Lisp code consists of expressions (forms). The most basic form is the list, which is written as a sequence of elements within parentheses.
+
+  #+BEGIN_SRC lisp
+    (+ 1 2 3) ; Adds 1, 2, and 3
+  #+END_SRC
+
+* Atoms and Lists
+  - *Atoms*: The simplest elements, like numbers, symbols, and strings.
+  - *Lists*: Ordered collections of elements, implemented as linked lists using cons cells.
+
+* Cons Cells and Linked Lists
+** Cons Cells
+   A *cons cell* is the fundamental building block of lists in Lisp. It is a data structure that contains two fields:
+   - *CAR*: The first element of the pair.
+   - *CDR*: The second element of the pair, which typically points to another cons cell or `nil`.
+
+   The `cons` function is used to create cons cells.
+
+   #+BEGIN_SRC lisp
+     (cons 1 2) ; Creates a cons cell with CAR = 1 and CDR = 2
+   #+END_SRC
+
+   This cons cell can be visualized in memory as:
+
+   #+BEGIN_EXAMPLE
+   +---+---+
+   | 1 | 2 |
+   +---+---+
+   #+END_EXAMPLE
+
+** Lists
+   A *list* in Lisp is a sequence of cons cells linked together. The `car` of each cons cell contains an element of the list, and the `cdr` points to the next cons cell in the sequence. The end of the list is indicated by `nil`.
+
+   Consider the list `(1 2 3)`:
+
+   #+BEGIN_SRC lisp
+     (cons 1 (cons 2 (cons 3 nil)))
+   #+END_SRC
+
+   This can be visualized as:
+
+   #+BEGIN_EXAMPLE
+   +---+---+    +---+---+    +---+-----+
+   | 1 | *----->| 2 | *----->| 3 | nil |
+   +---+---+    +---+---+    +---+-----+
+   #+END_EXAMPLE
+
+   Each box represents a cons cell:
+   - The left part (`car`) holds the value.
+   - The right part (`cdr`) points to the next cons cell or `nil`.
+
+   You can use the `list` function to create lists more conveniently:
+
+   #+BEGIN_SRC lisp
+     (list 1 2 3) ; Equivalent to (cons 1 (cons 2 (cons 3 nil)))
+   #+END_SRC
+
+* Accessing Elements
+  You can access the elements of a list using the `car` and `cdr` functions:
+
+  #+BEGIN_SRC lisp
+    (setq my-list (list 1 2 3))
+
+    (car my-list) ; Returns 1
+    (cdr my-list) ; Returns (2 3)
+  #+END_SRC
+
+  To access the second element, you can use `cadr` (which is shorthand for `(car (cdr ...))`):
+
+  #+BEGIN_SRC lisp
+    (cadr my-list) ; Returns 2
+  #+END_SRC
+
+* Modifying Lists
+  You can modify lists using `setf` with `car` and `cdr`:
+
+  #+BEGIN_SRC lisp
+    (setq my-list (list 1 2 3))
+
+    (setf (car my-list) 10) ; Changes the first element to 10
+    (setf (cdr my-list) (list 20 30)) ; Changes the rest of the list to (20 30)
+
+    my-list ; Returns (10 20 30)
+  #+END_SRC
+
+* Memory Representation
+  In memory, cons cells are typically implemented as pairs of pointers. Each cons cell contains:
+  - A pointer to the `car` value.
+  - A pointer to the `cdr` value (which is either another cons cell or `nil`).
+
+* Special Forms and Constructs
+** Quoting
+   The quote (`'`) operator prevents evaluation of an expression, treating it as literal data.
+
+   #+BEGIN_SRC lisp
+     '(a b c) ; Returns the list (a b c) without evaluating a, b, or c
+   #+END_SRC
+
+** Backquote and Unquote
+   The backquote (`` ` ``) allows for template-like expressions where parts of the expression can be evaluated. The unquote (`,`) operator is used within a backquoted expression to evaluate a part of it.
+
+   #+BEGIN_SRC lisp
+     `(1 2 ,(+ 1 2)) ; Returns (1 2 3)
+   #+END_SRC
+
+** Splicing
+   The unquote-splicing (`,@`) operator is used to splice a list into another list within a backquoted expression.
+
+   #+BEGIN_SRC lisp
+     `(1 2 ,@(list 3 4)) ; Returns (1 2 3 4)
+   #+END_SRC
+
+* Progn
+  `progn` is a special form that evaluates multiple expressions in sequence and returns the value of the last expression. It is useful for grouping multiple expressions where only one is expected.
+
+  #+BEGIN_SRC lisp
+    (progn
+      (print "Hello")
+      (print "World")
+      (+ 1 2)) ; Returns 3
+  #+END_SRC
+
+* Functions
+  Functions are first-class citizens in Lisp. You can define and call functions easily.
+
+  Defining Functions:
+  #+BEGIN_SRC lisp
+    (defun square (x)
+      (* x x))
+  #+END_SRC
+
+  Calling Functions:
+  #+BEGIN_SRC lisp
+    (square 5) ; Returns 25
+  #+END_SRC
+
+* Conditionals
+  Lisp uses `if` and `cond` for conditional expressions.
+
+  #+BEGIN_SRC lisp
+    (if (> 3 2)
+	'yes
+	'no) ; Returns 'yes
+
+    (cond ((> 3 2) 'greater)
+	  ((< 3 2) 'less)
+	  (t 'equal)) ; Returns 'greater
+  #+END_SRC
+
+* Loops
+  Common looping constructs include `loop`, `dolist`, and `dotimes`.
+
+  #+BEGIN_SRC lisp
+    (loop for i from 1 to 5
+	  do (print i)) ; Prints 1 2 3 4 5
+
+    (dolist (item '(a b c))
+      (print item)) ; Prints a b c
+
+    (dotimes (i 3)
+      (print i)) ; Prints 0 1 2
+  #+END_SRC
+
+* Macros
+  Macros in Lisp allow you to define new syntactic constructs. They operate on the code itself, transforming it before it is evaluated.
+
+** Example Macro: `when`
+   The `when` macro is a conditional construct that executes a body of expressions if a condition is true.
+
+   #+BEGIN_SRC lisp
+     (defmacro when (condition &rest body)
+       `(if ,condition
+	    (progn ,@body)))
+
+     (when (> 3 2)
+       (print 'greater)
+       (print 'than)
+       (print 'two)) ; Prints 'greater 'than 'two
+   #+END_SRC
+
+   In this macro:
+   - `&rest` collects all remaining arguments into a list.
+   - The backquote (`` ` ``) is used to construct a template.
+   - The unquote (`,`) is used to evaluate `condition`.
+   - The unquote-splicing (`,@`) is used to splice the `body` list into the `progn`.
+
+* Detailed Examples
+  Let's combine these concepts in more complex examples:
+
+** Factorial Function
+   #+BEGIN_SRC lisp
+     (defun factorial (n)
+       (if (<= n 1)
+	   1
+	   (* n (factorial (- n 1)))))
+
+     (factorial 5) ; Returns 120
+   #+END_SRC
+
+   This example defines a recursive function to compute the factorial of a number.
+
+** Custom Control Structure
+   #+BEGIN_SRC lisp
+     (defmacro unless (condition &rest body)
+       `(if (not ,condition)
+	    (progn ,@body)))
+
+     (unless (> 5 10)
+       (print "5 is not greater than 10")
+       (print "This is true")) ; Prints both statements
+   #+END_SRC
+
+   In this example:
+   - `unless` is a macro that executes its body if the condition is false.
+   - The macro uses `progn` to group multiple expressions.
+
+* Memory Management
+  Lisp uses garbage collection to manage memory. This means that the system automatically reclaims memory that is no longer in use, which helps prevent memory leaks and other issues related to manual memory management.
+
+* Resources
+  For further reading and official documentation, consider the following resources:
+
+  - [[http://www.lispworks.com/documentation/HyperSpec/Front/index.htm][Common Lisp HyperSpec]]
+  - [[http://www.gigamonkeys.com/book/][Practical Common Lisp]]
+  - [[https://mitpress.mit.edu/sites/default/files/sicp/index.html][Structure and Interpretation of Computer Programs]]
+
+  This comprehensive guide should provide a solid foundation in Lisp, covering its fundamental concepts, data structures, and memory management.

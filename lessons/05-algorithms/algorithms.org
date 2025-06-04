@@ -1,0 +1,2004 @@
+#+TITLE: Algorithms
+#+AUTHOR: João Silva
+#+EMAIL: joao.pedro.pacheco@hotmail.com
+#+DESCRIPTION: The last algorithms course you ever need.
+#+KEYWORDS: algorithms, javascript, lisp
+#+LANGUAGE: en
+
+* Big-O Complexity
+  Categorizes algorithms in time/memory requirements based on input. As your input grows, how fast does your memory grow?
+  It's notation is expressed by: O(N)
+
+  1. Growth is with respect to the input
+  2. Constants are dropped
+  3. Worst case is usually the measurement way
+
+     Trick: look for loops over the input!
+
+  #+BEGIN_SRC javascript
+    function sumCharCodes(str) {
+      let sum = 0
+      for (let i = 0; i < str.length; i++) {
+	sum += str.charCodeAt(i)
+      }
+      return sum
+    }
+  #+END_SRC
+     
+  #+BEGIN_SRC lisp
+    (defun sum-char-codes (str)
+      (let ((sum 0))
+	(dotimes (i (length str) sum)
+	  (incf sum (char-code (char str i))))))
+  #+END_SRC
+
+  The above function has a linear growth: O(N)
+  Worst case: we have to go over every item in the input.
+
+** Example Growth Comparisons
+   - N = 1       O(10N) = 10       O(N^2) = 1
+   - N = 5       O(10N) = 50       O(N^2) = 25
+   - N = 100     O(10N) = 1000     O(N^2) = 10,000 (10x)
+   - N = 1,000   O(10N) = 10,000   O(N^2) = 1,000,000 (100x)
+   - N = 10,000  O(10N) = 100,000  O(N^2) = 100,000,000 (1,000x)
+
+**** Practical vs Theoretical Differences
+     When N is sufficiently small and the constant that is dropped is large enough to make a real impact, the theoretical exponential growth can be faster than the linear one.
+
+** Common Complexities
+   - Constant: O(1)
+   - Logarithmic base 2: O(logN)
+   - Rooted: O(sqrt(N))
+   - Linear: O(N)
+   - Logarithmic: O(N logN)
+   - Quadratic: O(N^2)
+   - Exponential: O(2^N)
+   - Factorial: O(N!)
+
+   #+BEGIN_SRC javascript
+     function sumCharCodesQuadratically(str) {
+       let sum = 0
+       for (let i = 0; i < str.length; i++) {
+	 for (let i = 0; i < str.length; i++) {
+	   sum += str.charCodeAt(i)
+	 }
+       }
+       return sum
+     }
+   #+END_SRC
+
+   #+BEGIN_SRC lisp
+     (defun sum-char-codes-quadratically (str)
+       (let ((sum 0))
+	 (dotimes (i (length str) sum)
+	   (dotimes (j (length str))
+	     (incf sum (char-code (char str j)))))))
+   #+END_SRC
+
+   The above function has a quadratic growth: O(N^2)
+   Worst case: for every item in the input we have to go over every item in the input.
+
+   Let's setup some helper functions to measure time executions so we can evaluate the algorithms to see the how the result scales for different input sizes. We'll use this from now on, with some changes in the test data generation accoring to the algorithm:
+
+   #+BEGIN_SRC lisp
+     (defun measure-time (func &rest args)
+       "Measure the execution time of FUNC with ARGS in microseconds."
+       (let ((start-time (get-internal-real-time)))
+	 (apply func args)
+	 (/ (- (get-internal-real-time) start-time) 1000.0)))
+
+     (defun generate-test-data (n)
+       "Generate a string of length N consisting of random characters."
+       (let ((str ""))
+	 (dotimes (_ n str)
+	   (setq str (concatenate 'string str (string (code-char (+ 65 (random 26)))))))
+	 str))
+
+     (defun collect-data-points (func max-size step-size)
+       "Collect execution time data points for FUNC with strings of varying sizes."
+       (let ((data-points '()))
+	 (loop for size from step-size to max-size by step-size do
+	   (let* ((test-data (generate-test-data size))
+		  (time (measure-time func test-data)))
+	     (push (cons size time) data-points)))
+	 (reverse data-points)))
+
+     (defun display-table (data-points)
+       "Display the data points in a tabular format."
+       (format t "~%~12s ~20s~%" "Input Size" "Execution Time (µs)")
+       (dolist (dp data-points)
+	 (format t "~12d ~20,3f~%" (car dp) (cdr dp))))
+
+     (defun visualize-big-o (func max-size step-size)
+       "Visualize the Big-O complexity of FUNC by displaying a table."
+       (let ((data-points (collect-data-points func max-size step-size)))
+	 (display-table data-points)))
+
+     (format t "sum-char-codes~%")
+     (visualize-big-o #'sum-char-codes 1000 100)
+
+     (format t "~sum-char-codes-quadratically~%")
+     (visualize-big-o #'sum-char-codes-quadratically 1000 100)
+   #+END_SRC
+
+   #+BEGIN_SRC text
+     sum-char-codes
+     Input Size    Execution Time (µs)
+     100           0.001
+     200           0.002
+     300           0.003
+     400           0.004
+     500           0.005
+     600           0.006
+     700           0.007
+     800           0.008
+     900           0.009
+     1000          0.009
+
+     sum-char-codes-quadratically
+     Input Size   Execution Time (µs)
+     100          0.091
+     200          0.328
+     300          0.736
+     400          1.308
+     500          2.039
+     600          2.961
+     700          3.622
+     800          4.686
+     900          5.388
+     1000         6.526
+   #+END_SRC
+
+* Data Structures
+  Data structures are crucial for efficient data management and algorithm implementation. Choosing the right data structure can significantly impact the performance and complexity of a program.
+
+** Arrays
+   Arrays are the most fundamental data structures (referred to as DS from now on). They are contiguous (unbreaking) memory space, which contains a certain amount of bytes.
+
+   Operations in arrays (get, insert, and delete) are constant O(1); they don't go over the entire array to read or update a value.
+
+*** Linear Search
+    Go over the entire array, item by item.
+
+    #+BEGIN_SRC javascript
+      function linearSearch(arr, val) {
+	let hasValue = false
+
+	for (let i; i < arr.length; i++) {
+	  if (arr[i] === val) {
+	    hasValue = true
+	    break
+	  }
+	}
+
+	return hasValue
+      }
+    #+END_SRC
+    
+    #+BEGIN_SRC lisp
+      (defun linear-search (arr val)
+	"Perform a linear search for VAL in ARR. Return T if found, NIL otherwise."
+	(dotimes (i (length arr) nil)
+	  (when (eql (aref arr i) val)
+	    (return t))))
+    #+END_SRC
+
+    If your array is ordered, we have some benefits. Maybe we don't need to search all the input, you know...
+
+*** Binary Search
+    Divide the array in the middle, look up the item, and keep dividing it until you find the item.
+
+    #+BEGIN_SRC javascript
+      function binarySearch(arr, val) {
+	let hasValue = false
+	let lo = 0
+	let hi = arr.length
+
+	do {
+	  const mid = Math.floor(lo + (hi - lo) / 2)
+	  const midVal = arr[mid]
+
+	  if (midVal === val) {
+	    hasValue = true
+	    break
+	  } else if (midVal > val) {
+	    hi = mid
+	  } else {
+	    // exclude the mid point!
+	    lo = mid + 1
+	  }
+	} while (lo < hi)
+
+	return hasValue
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun binary-search (arr val)
+	"Perform a binary search for VAL in ARR. Return T if found, NIL otherwise."
+	(let ((lo 0)
+	      (hi (1- (length arr))))
+	  (loop while (<= lo hi) do
+	    (let* ((mid (floor (+ lo (/ (- hi lo) 2))))
+		   (mid-val (aref arr mid)))
+	      (cond
+		((eql mid-val val)
+		 (return t))
+		((> mid-val val)
+		 (setf hi (1- mid)))
+		(t
+		 (setf lo (1+ mid))))))
+	  nil))
+    #+END_SRC
+
+    Now let's compare them using those helper fn defined before, but with another test generation data:
+
+    #+BEGIN_SRC lisp
+      (defun generate-test-array (n)
+	"Generate an array of length N consisting of unique random integers."
+	(let ((arr (make-array n))
+	      (unique-numbers (make-hash-table :test 'eql)))
+	  (dotimes (i n arr)
+	    (let ((num (random (* 2 n))))  ; Increase the range to reduce the chance of duplicates
+	      (loop while (gethash num unique-numbers) do
+		(setf num (random (* 2 n))))
+	      (setf (aref arr i) num)
+	      (setf (gethash num unique-numbers) t)))))
+
+      (format t "linear-search~%")
+      (visualize-big-o #'linear-search 1000 100)
+
+      (format t "binary-search~%")
+      (visualize-big-o #'binary-search 1000 100)
+    #+END_SRC
+
+    #+BEGIN_SRC text
+      linear-search
+      Input Size   Execution Time (µs)
+      100          0.001
+      200          0.001
+      300          0.002
+      400          0.002
+      500          0.003
+      600          0.003
+      700          0.005
+      800          0.005
+      900          0.007
+      1000         0.007
+
+      binary-search
+      Input Size   Execution Time (µs)
+      100          0.001
+      200          0.001
+      300          0.000
+      400          0.001
+      500          0.000
+      600          0.001
+      700          0.001
+      800          0.001
+      900          0.001
+      1000         0.001
+    #+END_SRC
+
+    There's a little exercise to practice this knowledge:
+
+    - Given two crystal balls that will break if dropped from high enough distance, determine the exact spot in which it will break in the most optimized way.
+
+    Using linear search we have O(N) complexity. But this input DS is ordered! It will be an array of breaks (falses until trues) and so we can use the binary search. But it can be improved if we walk sqrt(N) steps linearly, and when the first ball breaks we get back to the last known unbreaking point and then check item for item from there, turning the complexity to O(sqrt(N)).
+
+    - Jump Search Phase: Jump in steps of sqrt(N) until you find a true value.
+    - Linear Search Phase: Once a true value is found, backtrack to the last known false value and perform a linear search from there.
+
+    #+BEGIN_SRC javascript
+      function breakingSpot(breaks) {
+	const jmpStep = Math.floor(Math.sqrt(breaks.length))
+	let i = 0
+
+	for (; i < breaks.length; i += jmpStep) {
+	  if (breaks[i]) break
+	}
+
+	i -= jmpStep // jump back to the last known unbreaking point
+
+	for (let j = 0; j < jmpStep && i < breaks.length; j++, i++) {
+	  if (breaks[i]) return i
+	}
+
+	return -1
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun breaking-spot (breaks)
+	"Find the first true value in the BREAKS array using jump search followed by linear search."
+	(let* ((jmp-step (floor (sqrt (length breaks))))
+	       (i 0))
+	  ;; First phase: Jump search
+	  (loop while (< i (length breaks)) do
+	    (when (aref breaks i)
+	      (return-from breaking-spot i))
+	    (incf i jmp-step))
+	  ;; Adjust i to the last jump point
+	  (decf i jmp-step)
+	  ;; Second phase: Linear search
+	  (loop for j from 0 below jmp-step
+		while (< i (length breaks)) do
+		  (when (aref breaks i)
+		    (return-from breaking-spot i))
+		  (incf i))
+	  ;; If no true value is found, return -1
+	  -1))
+    #+END_SRC
+
+*** Bubble Sort
+    How do you know an array is sorted? While X₀ <= (X₀ + 1) holds true! But be careful, because this is an O(N^2).
+
+    #+BEGIN_SRC javascript
+      function bubbleSort(arr) {
+	for (let i = 0; i < arr.length; i++) {
+	  // run for values excluding the last one checked
+	  for (let j = 0; j < arr.length - 1 - i; j++) { 
+	    if (arr[j] > arr[j + 1]) { // swap values if unordered
+	      const tmp = arr[j]
+	      arr[j] = arr[j + 1]
+	      arr[j + 1] = tmp
+	    } 
+	  }
+	}
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun bubble-sort (arr)
+	(dotimes (i (length arr))
+	  (dotimes (j (- (length arr) 1 i))
+	    (when (> (aref arr j) (aref arr (1+ j)))
+	      (rotatef (aref arr j) (aref arr (1+ j))))))
+	arr)
+    #+END_SRC
+
+    Visualize scaling with those helper fn:
+
+    #+BEGIN_SRC lisp
+      (defun generate-test-data (n)
+	"Generate an array of length N consisting of random integers."
+	(let ((arr (make-array n)))
+	  (dotimes (i n arr)
+	    (setf (aref arr i) (random 1000)))))
+
+      (format t "bubble-sort~%")
+      (visualize-big-o #'bubble-sort 1000 100)
+    #+END_SRC
+
+    #+BEGIN_SRC text
+      bubble-sort
+      Input Size   Execution Time (µs)
+      100          0.088
+      200          0.338
+      300          0.769
+      400          1.379
+      500          2.206
+      600          3.132
+      700          4.147
+      800          5.203
+      900          6.625
+      1000         7.673
+    #+END_SRC
+
+*** Array List
+    Base of a lot of algorithms, an Array List is a DS for a better world. Its usability eases the get operation with fast inserts/deletes.
+
+    Uses an array as its fundamental data type instead of a node-based structure!
+
+    With a capacity property alongside length, push, pop, and get is O(1). Queue-like operations are tricky, they're O(N) and an enqueue in the front of the list requires the shifting of all values. Not cool. On dequeue, it's the same; removing the first item requires shifting all items backward.
+
+    Which one should one use? IT ALWAYS DEPENDS!
+    
+*** Array Buffer
+    Also called Ring Buffers, they're a linked list without head being 0 and tail being length. We have index-based head and tail!
+
+    #+BEGIN_SRC text
+      [ 0 1 2 3 4 5 6 7 ]
+      ^head     ^tail
+    #+END_SRC
+
+    This way, this.tail % length gives you the index into the array, and you can ring around it.
+
+    The problem is when the tail is bigger than the head, causing the need to resize the list! Ring buffers maintain order, so the resize makes you copy the structure to a bigger memory space. As long as it is a FIFO, you are safe because the queue will run around your structure.
+
+** Linked List
+   Linked lists are the second approached DS. In fact, it's difficult to say that arrays are data structures because they're a raw, fundamental concept.
+
+   We can have singly and doubly linked lists:
+
+   #+BEGIN_SRC text
+     A -> B -> C -> D
+     A <-> B <-> C <-> D
+   #+END_SRC
+
+   So we have nodes that contain a value and can point to other values. Of course, singly linked lists nodes have only next pointers.
+
+   #+BEGIN_SRC text
+     Node<T> {
+       val: T
+       next?: Node<T>
+       prev?: Node<T>
+     }
+   #+END_SRC
+
+   In this sense, their insert and delete operations complexity can be tricky. The inserting and deleting itself is always constant O(1), because they're mainly done by looking at values and breaking and updating the links between them. But to get to the value to perform the operation, we may need to traverse the list until we find it, thus costing more depending on the traverse strategy itself.
+
+   In general, we don't want to traverse the linked list. Any time we do an Nth length algorithm, there's probably a DS that's better to deal with it than a linked list.
+
+*** Queue
+    A queue is a specific implementation of a linked list: FIFO (first in, first out).
+
+    #+BEGIN_SRC
+      A -> B -> C -> D
+      ^head          ^tail
+    #+END_SRC
+
+    #+BEGIN_SRC javascript
+      class Queue {
+	public length
+	private head
+	private tail
+
+	constructor() {
+	  this.length = 0
+	  this.head = this.tail = undefined
+	}
+
+	enqueue(item) {
+	  this.length++
+	  const node = { value: item }
+
+	  if (!this.tail) {
+	    this.tail = this.head = node
+	    return
+	  }
+
+	  this.tail.next = this.tail = node
+	}
+
+	deque(item) {
+	  if (!this.head) return undefined
+
+	  this.length--
+
+	  const head = this.head
+	  this.head = this.head.next
+	  head.next = undefined
+
+	  if (this.length === 0) this.tail = undefined
+
+	  return head.value
+	}
+
+	peek() {
+	  return this.head?.value
+	}
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun make-queue ()
+	"Create an empty queue."
+	(cons nil nil))
+
+      (defun enqueue (queue item)
+	"Add an item to the end of the queue."
+	(let ((new-node (cons item nil)))
+	  (if (car queue)
+	      (progn
+		(setf (cdr (cdr queue)) new-node)
+		(setf (cdr queue) new-node))
+	      (progn
+		(setf (car queue) new-node)
+		(setf (cdr queue) new-node)))))
+
+      (defun dequeue (queue)
+	"Remove and return the item at the front of the queue."
+	(if (car queue)
+	    (let ((head-node (car queue)))
+	      (setf (car queue) (cdr head-node))
+	      (if (null (car queue))
+		  (setf (cdr queue) nil))
+	      (car head-node))
+	    nil))
+
+      (defun peek (queue)
+	"Return the item at the front of the queue without removing it."
+	(if (car queue)
+	    (car (car queue))
+	    nil))
+
+      (defun queue-length (queue)
+	"Return the length of the queue."
+	(let ((length 0)
+	      (current (car queue)))
+	  (loop while current do
+	    (incf length)
+	    (setf current (cdr current)))
+	  length))
+    #+END_SRC
+
+    Let's do a little testing. No need to say that you'll need to see PASSED for them (also reuse run-test from now on):
+
+    #+BEGIN_SRC lisp
+      (defun run-test (description result expected)
+	(format t "~a: " description)
+	(if (equal result expected)
+	    (format t "PASSED~%")
+	    (format t "FAILED (Expected ~a, got ~a)~%" expected result)))
+
+      (defun test-make-queue ()
+	(let ((queue (make-queue)))
+	  (run-test "Make queue" (and (null (car queue)) (null (cdr queue))) t)))
+
+      (defun test-enqueue ()
+	(let ((queue (make-queue)))
+	  (enqueue queue 1)
+	  (enqueue queue 2)
+	  (enqueue queue 3)
+	  (run-test "Enqueue items" (list (peek queue) (queue-length queue)) '(1 3))))
+
+      (defun test-dequeue ()
+	(let ((queue (make-queue)))
+	  (enqueue queue 1)
+	  (enqueue queue 2)
+	  (enqueue queue 3)
+	  (let ((first (dequeue queue))
+		(second (dequeue queue))
+		(third (dequeue queue)))
+	    (run-test "Dequeue items" (list first second third (queue-length queue)) '(1 2 3 0)))))
+
+      (defun test-peek ()
+	(let ((queue (make-queue)))
+	  (enqueue queue 1)
+	  (enqueue queue 2)
+	  (run-test "Peek item" (peek queue) 1)))
+
+      (defun test-queue-length ()
+	(let ((queue (make-queue)))
+	  (enqueue queue 1)
+	  (enqueue queue 2)
+	  (enqueue queue 3)
+	  (run-test "Queue length" (queue-length queue) 3)))
+
+      (defun run-all-tests ()
+	(test-make-queue)
+	(test-enqueue)
+	(test-dequeue)
+	(test-peek)
+	(test-queue-length))
+
+      (run-all-tests)
+    #+END_SRC
+
+*** Stack
+    Stack is the opposite of a queue, it's a FILO (first in, last out). They're a singly linked list that have push, pop, and peek operations, and you always perform them on the head.
+
+    #+BEGIN_SRC text
+      A <- B <- C <- D
+      ^head
+    #+END_SRC
+
+    #+BEGIN_SRC javascript
+      class Stack {
+	public length
+	private head
+
+	constructor() {
+	  this.length = 0
+	  this.head = undefined
+	}
+
+	push(item) {
+	  this.lengh++
+	  const node = { value: item }
+
+	  if (!this.head) {
+	    this.head = node
+	    return
+	  }
+
+	  node.prev = this.head
+	  this.head = node
+	}
+
+	pop() {
+	  this.length = Math.max(0, this.length - 1)
+
+	  if (this.length === 0) {
+	    const head = this.head
+	    this.head = undefined
+
+	    return head?.value
+	  }
+
+	  const head = this.head
+	  this.head = head.prev
+
+	  return head.value
+	}
+
+	peek() {
+	  return this.head?.value
+	}
+      }
+    #+END_SRC
+     
+    #+BEGIN_SRC lisp
+      (defun make-stack ()
+	"Create an empty stack."
+	(cons nil 0))  ; (stack . length)
+
+      (defun stack-push (stack item)
+	"Push an item onto the stack."
+	(let ((new-node (cons item (car stack))))
+	  (setf (car stack) new-node)
+	  (incf (cdr stack))))
+
+      (defun stack-pop (stack)
+	"Pop an item from the stack."
+	(if (car stack)
+	    (let ((top-item (car (car stack))))
+	      (setf (car stack) (cdr (car stack)))
+	      (decf (cdr stack))
+	      top-item)
+	    nil))
+
+      (defun stack-peek (stack)
+	"Peek at the top item of the stack without removing it."
+	(car (car stack)))
+
+      (defun stack-length (stack)
+	"Return the length of the stack by traversing it recursively."
+	(labels ((length-helper (node)
+		   (if node
+		       (1+ (length-helper (cdr node)))
+		       0)))
+	  (length-helper (car stack))))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      (defun test-stack ()
+	(let ((stack (make-stack)))
+	  ;; Test initial length
+	  (run-test "Initial length" (stack-length stack) 0)
+    
+	  ;; Test push
+	  (stack-push stack 10)
+	  (run-test "Length after one push" (stack-length stack) 1)
+	  (run-test "Peek after one push" (stack-peek stack) 10)
+    
+	  (stack-push stack 20)
+	  (run-test "Length after two pushes" (stack-length stack) 2)
+	  (run-test "Peek after two pushes" (stack-peek stack) 20)
+    
+	  ;; Test pop
+	  (run-test "Pop after two pushes" (stack-pop stack) 20)
+	  (run-test "Length after one pop" (stack-length stack) 1)
+	  (run-test "Peek after one pop" (stack-peek stack) 10)
+    
+	  (run-test "Pop after one push" (stack-pop stack) 10)
+	  (run-test "Length after two pops" (stack-length stack) 0)
+	  (run-test "Peek after emptying stack" (stack-peek stack) nil)
+    
+	  ;; Test pop on empty stack
+	  (run-test "Pop on empty stack" (stack-pop stack) nil)))
+
+      (test-stack)
+    #+END_SRC
+
+*** Doubly Linked List
+    Following the linked list implementations, we have a doubly linked list defined below.
+
+    #+BEGIN_SRC javascript
+      class DoublyLinkedList {
+	public length
+	private head
+	private tail
+
+	constructor() {
+	  this.length = 0
+	  this.head = undefined
+	  this.tail = undefined
+	}
+
+	private getAt(idx) {
+	  let curr = this.head
+	  for (let i = 0; curr && i < idx; i++) {
+	    curr = curr.next
+	  }
+
+	  return curr
+	}
+
+	private removeNode(node) {
+	  this.length--
+
+	  if (this.length === 0) {
+	    const out = this.head.value
+	    this.head = this.tail = undefined
+	    return out
+	  }
+
+	  if (node.prev) node.prev.next = node.next
+	  if (node.next) node.next.prev = node.prev
+
+	  if (node = this.head) this.head = node.next
+	  if (node = this.tail) this.tail = node.prev
+
+	  node.prev = node.next = undefined
+	  return node.value
+	}
+
+	prepend(item) {
+	  const node = { value: item }
+
+	  this.length++
+	  if (!this.head) this.head = this.tail = node
+
+	  node.next = this.head
+	  this.head.prev = node
+	  this.head = node
+	}
+
+	insertAt(item idx) {
+	  if (idx > length) {
+	    throw new Error('Out of bounds')
+	  }
+
+	  if (idx === length) {
+	    this.append(item)
+	    return
+	  } else if (idx === 0) {
+	    this.prepend(item)
+	    return
+	  }
+
+	  this.length++
+
+	  const curr = this.getAt(idx)
+	  const node = { value: item }
+
+	  node.next = curr
+	  node.prev = curr.prev
+	  curr.prev = node
+
+	  if (node.prev) node.prev.next = curr
+	}
+
+	append(item) {
+	  this.length++
+	  const node = { value: item }
+
+	  if (!this.tail) {
+	    this.head = this.tail = node
+	    return
+	  }
+
+	  node.prev = this.tail
+	  this.tail.next = node
+	  this.tail = node
+	}
+
+	remove(item) {
+	  let curr = this.head
+
+	  for (let i = 0; curr && i < this.length; i++) {
+	    if (curr.value === item) break
+
+	    curr = curr.next
+	  }
+
+	  if (!curr) return undefined
+
+	  return this.removeNode(curr)
+	}
+
+	get(idx) {
+	  return this.getAt(idx)?.value
+	}
+
+	removeAt(idx) {
+	  const node = this.getAt(idx)
+	  if (!node) return undefined
+
+	  return this.removeNode(node)
+	}
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defstruct node value next prev)
+      (defstruct doubly-linked-list length head tail)
+
+      (defun create-doubly-linked-list ()
+	"Create an empty doubly linked list."
+	(make-doubly-linked-list :length 0 :head nil :tail nil))
+
+      (defun get-at (list idx)
+	"Get the node at index IDX in the LIST."
+	(let ((curr (doubly-linked-list-head list)))
+	  (dotimes (i idx curr)
+	    (setf curr (node-next curr)))))
+
+      (defun remove-node (list node)
+	"Remove NODE from the LIST."
+	(decf (doubly-linked-list-length list))
+	(if (zerop (doubly-linked-list-length list))
+	    (let ((out (node-value (doubly-linked-list-head list))))
+	      (setf (doubly-linked-list-head list) nil)
+	      (setf (doubly-linked-list-tail list) nil)
+	      out)
+	    (progn
+	      (if (node-prev node)
+		  (setf (node-next (node-prev node)) (node-next node)))
+	      (if (node-next node)
+		  (setf (node-prev (node-next node)) (node-prev node)))
+	      (if (eq node (doubly-linked-list-head list))
+		  (setf (doubly-linked-list-head list) (node-next node)))
+	      (if (eq node (doubly-linked-list-tail list))
+		  (setf (doubly-linked-list-tail list) (node-prev node)))
+	      (setf (node-prev node) nil)
+	      (setf (node-next node) nil)
+	      (node-value node))))
+
+      (defun prepend-item (list item)
+	"Prepend ITEM to the LIST."
+	(let ((node (make-node :value item)))
+	  (incf (doubly-linked-list-length list))
+	  (if (null (doubly-linked-list-head list))
+	      (progn
+		(setf (doubly-linked-list-head list) node)
+		(setf (doubly-linked-list-tail list) node))
+	      (progn
+		(setf (node-next node) (doubly-linked-list-head list))
+		(setf (node-prev (doubly-linked-list-head list)) node)
+		(setf (doubly-linked-list-head list) node)))))
+
+      (defun insert-at (list item idx)
+	"Insert ITEM at index IDX in the LIST."
+	(if (> idx (doubly-linked-list-length list))
+	    (error "Out of bounds")
+	    (if (= idx (doubly-linked-list-length list))
+		(append list item)
+		(if (zerop idx)
+		    (prepend list item)
+		    (progn
+		      (incf (doubly-linked-list-length list))
+		      (let ((curr (get-at list idx))
+			    (node (make-node :value item)))
+			(setf (node-next node) curr)
+			(setf (node-prev node) (node-prev curr))
+			(setf (node-prev curr) node)
+			(if (node-prev node)
+			    (setf (node-next (node-prev node)) node))))))))
+
+      (defun append-item (list item)
+	"Append ITEM to the LIST."
+	(let ((node (make-node :value item)))
+	  (incf (doubly-linked-list-length list))
+	  (if (null (doubly-linked-list-tail list))
+	      (progn
+		(setf (doubly-linked-list-head list) node)
+		(setf (doubly-linked-list-tail list) node))
+	      (progn
+		(setf (node-prev node) (doubly-linked-list-tail list))
+		(setf (node-next (doubly-linked-list-tail list)) node)
+		(setf (doubly-linked-list-tail list) node)))))
+
+      (defun remove-item (list item)
+	"Remove the first occurrence of ITEM from the LIST."
+	(let ((curr (doubly-linked-list-head list)))
+	  (dotimes (i (doubly-linked-list-length list))
+	    (if (and curr (eq (node-value curr) item))
+		(return (remove-node list curr)))
+	    (setf curr (node-next curr)))))
+
+      (defun get-value (list idx)
+	"Get the value at index IDX in the LIST."
+	(node-value (get-at list idx)))
+
+      (defun remove-at (list idx)
+	"Remove the node at index IDX in the LIST."
+	(let ((node (get-at list idx)))
+	  (if node
+	      (remove-node list node))))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      (defun test-create-doubly-linked-list ()
+	(let ((list (create-doubly-linked-list)))
+	  (run-test "Empty list length" (doubly-linked-list-length list) 0)
+	  (run-test "Empty list head" (doubly-linked-list-head list) nil)
+	  (run-test "Empty list tail" (doubly-linked-list-tail list) nil)))
+
+      (defun test-prepend-item ()
+	(let ((list (create-doubly-linked-list)))
+	  (prepend-item list 1)
+	  (run-test "Prepend 1: length" (doubly-linked-list-length list) 1)
+	  (run-test "Prepend 1: head value" (node-value (doubly-linked-list-head list)) 1)
+	  (run-test "Prepend 1: tail value" (node-value (doubly-linked-list-tail list)) 1)
+	  (prepend-item list 2)
+	  (run-test "Prepend 2: length" (doubly-linked-list-length list) 2)
+	  (run-test "Prepend 2: head value" (node-value (doubly-linked-list-head list)) 2)
+	  (run-test "Prepend 2: tail value" (node-value (doubly-linked-list-tail list)) 1)))
+
+      (defun test-append-item ()
+	(let ((list (create-doubly-linked-list)))
+	  (append-item list 1)
+	  (run-test "Append 1: length" (doubly-linked-list-length list) 1)
+	  (run-test "Append 1: head value" (node-value (doubly-linked-list-head list)) 1)
+	  (run-test "Append 1: tail value" (node-value (doubly-linked-list-tail list)) 1)
+	  (append-item list 2)
+	  (run-test "Append 2: length" (doubly-linked-list-length list) 2)
+	  (run-test "Append 2: head value" (node-value (doubly-linked-list-head list)) 1)
+	  (run-test "Append 2: tail value" (node-value (doubly-linked-list-tail list)) 2)))
+
+      (defun test-insert-at ()
+	(let ((list (create-doubly-linked-list)))
+	  (append-item list 1)
+	  (append-item list 3)
+	  (insert-at list 2 1)
+	  (run-test "Insert 2 at index 1: length" (doubly-linked-list-length list) 3)
+	  (run-test "Insert 2 at index 1: value at index 0" (get-value list 0) 1)
+	  (run-test "Insert 2 at index 1: value at index 1" (get-value list 1) 2)
+	  (run-test "Insert 2 at index 1: value at index 2" (get-value list 2) 3)))
+
+      (defun test-remove-item ()
+	(let ((list (create-doubly-linked-list)))
+	  (append-item list 1)
+	  (append-item list 2)
+	  (append-item list 3)
+	  (remove-item list 2)
+	  (run-test "Remove 2: length" (doubly-linked-list-length list) 2)
+	  (run-test "Remove 2: value at index 0" (get-value list 0) 1)
+	  (run-test "Remove 2: value at index 1" (get-value list 1) 3)))
+
+      (defun test-remove-at ()
+	(let ((list (create-doubly-linked-list)))
+	  (append-item list 1)
+	  (append-item list 2)
+	  (append-item list 3)
+	  (remove-at list 1)
+	  (run-test "Remove at index 1: length" (doubly-linked-list-length list) 2)
+	  (run-test "Remove at index 1: value at index 0" (get-value list 0) 1)
+	  (run-test "Remove at index 1: value at index 1" (get-value list 1) 3)))
+
+      (defun test-get-at ()
+	(let ((list (create-doubly-linked-list)))
+	  (append-item list 1)
+	  (append-item list 2)
+	  (append-item list 3)
+	  (run-test "Get at index 0" (get-value list 0) 1)
+	  (run-test "Get at index 1" (get-value list 1) 2)
+	  (run-test "Get at index 2" (get-value list 2) 3)))
+
+      (defun run-all-tests ()
+	(test-create-doubly-linked-list)
+	(test-prepend-item)
+	(test-append-item)
+	(test-insert-at)
+	(test-remove-item)
+	(test-remove-at)
+	(test-get-at)
+	(format t "All tests completed~%"))
+
+      (run-all-tests)
+    #+END_SRC
+
+*** Arrays vs Linked Lists
+    Arrays are cool for index access but there's no literal insert, there's only write... we have to shift everything to add some value, thus allocating more memory for it.
+
+    Linked lists, on the other hand, don't have index access but have an incredible ability to grow. They always use less memory, but the cost of traversing can be expensive. There's no binary search on them!
+
+    Thumb rule: if you have to scan a list or hop into the middle of it (random access), you'd want something more like an array. If you want to push or pop from the beginning/end of the list, the linked list is a better choice.
+
+    Can we have array access with the ability to grow?
+
+** Recursion
+   Something that keeps calling itself forever, or until it hits some special condition (base case).
+
+   A simple case to understand:
+
+   #+BEGIN_SRC javascript
+     function recurseSum(num) {
+       // base case, breakout from the function if reached
+       if (num === 1) return 1
+
+       // call itself again!
+       return num + recurseSum(num - 1)
+     }
+   #+END_SRC
+
+   #+BEGIN_SRC lisp
+     (defun recurse-sum (num)
+       "Recursively sum numbers from NUM down to 1."
+       ;; Base case: if num is 1, return 1
+       (if (= num 1)
+	   1
+	   ;; Recursive case: add num to the sum of numbers from num-1
+	   (+ num (recurse-sum (- num 1)))))
+   #+END_SRC
+
+   So we have a few concepts to understand the mechanics of function calls.
+
+   - rA: returned address - every time a function is called, it needs to know where should it return the value to.
+   - rV: returned value - value that will be returned from the function.
+   - A: arguments - things passed into the function (memory has to be allocated)
+
+   From the function above:
+
+   | rA   | rV   | A |
+   |------|------|---|
+   | foo5 | 5+10 | 5 |
+   | foo4 | 4+6  | 4 |
+   | foo3 | 3+3  | 3 |
+   | foo2 | 2+1  | 2 |
+   | foo1 | 1    | 1 |
+
+   It resumes with 3 steps:
+   - PRE: n +
+   - RECURSE: n + (n - 1)
+   - POST: return sum
+
+*** Path Finder
+    Practical problem: MAZE SOLVER
+    x: wall, e: end/exit, s: start
+
+    #+BEGIN_SRC text
+      [
+        "xxxxxxxxsx",
+        "x      x x",
+        "x xxxxxx x",
+        "x        x",
+        "xexxxxxxxx",
+      ]
+    #+END_SRC
+
+    So we're going to check every direction looking at the base cases:
+    1. Off the map (there's a spot that's not on the map)
+    2. It's a wall (can't go to its position)
+    3. It's the end (done! exited the maze)
+    4. If we have seen it (been there)
+
+    #+BEGIN_SRC javascript
+      const directions = [
+	[-1, 0],
+	[1, 0],
+	[0, -1],
+	[0, 1],
+      ]
+
+      function walkMazePath(maze, wall, currPos, end, seen, path) {
+	// 1
+	if (currPos.x < 0 || currPos.x >= maze[0].length ||
+	    currPos.y < 0 || currPos.y >= maze.length)
+	  return false
+
+	// 2
+	if (maze[currPos.y][currPos.x] === wall) return false
+
+	// 3
+	if (currPos.x === end.x && currPos.y === end.y) {
+	  path.push(end)
+	  return true
+	}
+
+	// 4
+	if (seen[currPos.y][currPos.x]) return false
+
+	// main steps
+	// pre
+	seen(currPos.y][currPos.x] = true
+	path.push(currPos)
+
+	// recurse
+	for (let i = 0; i < directions.length; i++) {
+	  const [x, y] = directions[i]
+
+	  if (walkMazePath(maze, wall, {
+	    x: currPos.x + x,
+	    y: currPos.y + y,
+	  }, end, seen, path))
+	    return true
+	}
+
+	// post
+	path.pop()
+
+	return false
+      }
+
+      function solveMaze(maze, wall, start, end) {
+	// boolean matrix to deal with navigation
+	const seen = []
+	// position array with the walked path
+	const path = []
+
+	for (let i = 0; i < maze.length; i++) {
+	  seen.push(new Array(maze[0].length).fill(false))
+	}
+
+	walkMazePath(maze, wall, start, end, seen, path)
+
+	return path
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defparameter *directions* '((-1 0) (1 0) (0 -1) (0 1))
+	"List of possible directions to move in the maze: up, down, left, right.")
+
+      (defun walk-maze-path (maze wall curr-pos end seen path)
+	"Recursively walk through the maze to find a path from CURR-POS to END."
+	;; 1
+	(if (or (< (first curr-pos) 0)
+		(>= (first curr-pos) (length (first maze)))
+		(< (second curr-pos) 0)
+		(>= (second curr-pos) (length maze)))
+	    (return-from walk-maze-path nil))
+	;; 2
+	(if (char= (aref (nth (second curr-pos) maze) (first curr-pos)) wall)
+	    (return-from walk-maze-path nil))
+	;; 3
+	(if (and (= (first curr-pos) (first end))
+		 (= (second curr-pos) (second end)))
+	    (progn
+	      (push end path)
+	      (return-from walk-maze-path t)))
+	;; 4
+	(if (aref (nth (second curr-pos) seen) (first curr-pos))
+	    (return-from walk-maze-path nil))
+
+	;; Main steps
+	;; Pre
+	(setf (aref (nth (second curr-pos) seen) (first curr-pos)) t)
+	(push curr-pos path)
+
+	;; Recurse
+	(some (lambda (direction)
+		(walk-maze-path maze wall
+				(list (+ (first curr-pos) (first direction))
+				      (+ (second curr-pos) (second direction)))
+				end seen path))
+	      ,*directions*)
+
+	;; Post
+	(pop path)
+	(return-from walk-maze-path nil))
+
+      (defun solve-maze (maze wall start end)
+	"Solve the maze from START to END."
+	(let ((seen (mapcar (lambda (row) (make-array (length row) :initial-element nil)) maze))
+	      (path '()))
+	  (walk-maze-path maze wall start end seen path)
+	  path))
+    #+END_SRC
+
+*** Quick Sort
+    There's more detailed explanations about merge sort, but this focuses on the divide and conquer strategy (splitting the input into chunks, and solving things faster in smaller subsets).
+
+    Of course, quick sort has a deceiving name. If you have a reversed array and pick the last value, things can pass from O(N) to O(N^2).
+
+    #+BEGIN_SRC javascript
+      function qs(arr, lo, hi) {
+	if (lo >= hi) return
+
+	const pivotIdx = partition(arr, lo, hi)
+
+	// inclusive endings, not exclusive
+	qs(arr, lo, pivotIdx - 1)
+	qs(arr, pivotIdx + 1, hi)
+      }
+
+      function partition(arr, lo, hi) {
+	const pivot = arr[hi]
+
+	// put the index out of bounds to be incremented to the first pos of the
+	// partition
+	let idx = lo - 1
+
+	// find lesser values and swap positions
+	for (let i = lo; i < hi; i++) {
+	  if (arr[i] <= pivot) {
+	    idx++
+	    const tmp = arr[i]
+	    arr[i] = arr[idx]
+	    arr[idx] = tmp
+	  }
+	}
+
+	// swap pivot to sustain the rule
+	idx++
+	arr[hi] = arr[idx]
+	arr[idx] = pivot
+
+	// return the pivot index
+	return idx
+      }
+
+      function quickSort(arr) {
+	qs(arr, 0, arr.length - 1)
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun partition (arr lo hi)
+	"Partition the array ARR between indices LO and HI."
+	(let ((pivot (aref arr hi))
+	      (idx (1- lo)))
+	  ;; Find lesser values and swap positions
+	  (loop for i from lo to (1- hi) do
+	    (if (<= (aref arr i) pivot)
+		(progn
+		  (incf idx)
+		  (rotatef (aref arr i) (aref arr idx)))))
+	  ;; Swap pivot to sustain the rule
+	  (incf idx)
+	  (rotatef (aref arr hi) (aref arr idx))
+	  ;; Return the pivot index
+	  idx))
+
+      (defun qs (arr lo hi)
+	"Sorts the array ARR between indices LO and HI."
+	(loop while (< lo hi) do
+	  (let ((pivot-idx (partition arr lo hi)))
+	    ;; Inclusive endings, not exclusive
+	    (qs arr lo (1- pivot-idx))
+	    (qs arr (1+ pivot-idx) hi)
+	    (return))))
+
+      (defun quick-sort (arr)
+	"Sort the array ARR using the quicksort algorithm."
+	(qs arr 0 (1- (length arr))))
+    #+END_SRC
+
+    Testing (don't forget to replace generated arrays in collect-data-point fn test-data bind):
+
+    #+BEGIN_SRC lisp
+      (defun generate-random-array (size)
+	"Generate a random array of given SIZE."
+	(coerce (loop for i from 1 to size collect (random size)) 'vector))
+
+      (defun generate-reversed-array (size)
+	"Generate a reversed array of given SIZE."
+	(coerce (loop for i from size downto 1 collect i) 'vector))
+
+      (format t "quicksort~%")
+      (visualize-big-o #'quick-sort 1000 100)
+    #+END_SRC
+
+    #+BEGIN_SRC text
+      quicksort random array
+      Input Size   Execution Time (µs)
+      100          0.014
+      200          0.031
+      300          0.061
+      400          0.073
+      500          0.102
+      600          0.107
+      700          0.128
+      800          0.195
+      900          0.396
+      1000         0.413
+
+      quicksort reversed array
+      Input Size   Execution Time (µs)
+      100          0.089
+      200          0.360
+      300          0.777
+      400          1.362
+      500          2.203
+      600          2.987
+      700          3.859
+      800          4.942
+      900          5.783
+      1000         7.034
+      #+END_SRC
+
+** Trees
+   Simple tree anatomy:
+
+   #+BEGIN_SRC text
+            O       < ROOT  |
+          /   \             |
+         O     O            |
+        / \     \           | HEIGHT
+       O   O     O          |
+      /|\                   |
+     O O O                  |
+   #+END_SRC
+
+   Filesystem, syntax trees, HTML DOM, etc...
+
+   Terminology:
+   - Root/Head: most parent node
+   - Height: longest path from root to most child
+   - Binary tree: at most 2 children, at least 0
+   - General tree: 0 or more children
+   - Binary search tree: has at most 2 children and specific ordering to the nodes
+   - Leaves: node without children
+   - Balanced: any node's left and right children have the same height
+   - Branching factor: amount of children of a tree
+
+   Traversals
+   Most basic operations in trees. There are different ways in which you can visit the nodes of a tree: pre-order, in-order, and post-order.
+
+   Take the following tree:
+
+   #+BEGIN_SRC text
+           7
+         /   \
+       23      3
+      /  \    / \
+     5    4  18 21
+   #+END_SRC
+
+   The input is the whole tree, so it has a linear growth, O(N). We have to visit all the nodes possible.
+
+   If you really think about it, it's a doubly linked list, but instead of prev and next, it has left and right!
+
+   Depth First Searches
+   These kinds of traversals go as deep as possible on the tree and then visit the node (or do something with it). Implicitly we use a stack-like DS during the traversal of the tree, pushing and popping the values while we visit (printing) the node.
+
+*** Pre Order
+    1. Visit Node
+    2. Recurse Left
+    3. Recurse Right
+       
+    RESULT: [7, 23, 5, 4, 3, 18, 21] (root's at the beginning)
+
+       #+BEGIN_SRC javascript
+	 function walkPreOrdered(curr, path) {
+	   // base case
+	   if (!curr) return path
+
+	   path.push(curr.value)
+	   walk(curr.left, path)
+	   walk(curr.right, path)
+
+	   return path
+	 }
+
+	 export function preOrderTraverse(head) {
+	   return walkPreOrdered(head, [])
+	 }
+       #+END_SRC
+
+       #+BEGIN_SRC lisp
+	 (defun walk-pre-ordered (curr path)
+	   "Recursive helper function for pre-order traversal."
+	   (if (null curr)
+	       path
+	       (let ((new-path (cons (node-value curr) path)))
+		 (setf new-path (walk-pre-ordered (node-left curr) new-path))
+		 (walk-pre-ordered (node-right curr) new-path))))
+
+	 (defun pre-order-traverse (head)
+	   "Perform pre-order traversal starting from HEAD."
+	   (nreverse (walk-pre-ordered head '())))
+       #+END_SRC
+
+*** In Order
+    1. Recurse Left
+    2. Visit Node
+    3. Recurse Right
+       
+    RESULT: [5, 4, 23, 7, 18, 3, 21] (root's at the middle)
+
+    #+BEGIN_SRC javascript
+      function walkInOrder(curr, path) {
+	// base case
+	if (!curr) return path
+
+	walk(curr.left, path)
+	path.push(curr.value)
+	walk(curr.right, path)
+
+	return path
+      }
+
+      export function inOrderTraverse(head) {
+	return walkInOrder(head, [])
+      }
+    #+END_SRC
+      
+    #+BEGIN_SRC lisp
+      (defun walk-in-order (curr path)
+	"Recursive helper function for in-order traversal."
+	(if (null curr)
+	    path
+	    (let ((left-path (walk-in-order (node-left curr) path)))
+	      (let ((new-path (cons (node-value curr) left-path)))
+		(walk-in-order (node-right curr) new-path)))))
+
+      (defun in-order-traverse (head)
+	"Perform in-order traversal starting from HEAD."
+	(nreverse (walk-in-order head '())))
+    #+END_SRC
+
+*** Post Order
+    1. Recurse Left
+    2. Recurse Right
+    3. Visit Node
+       
+    RESULT: [5, 4, 23, 18, 21, 3, 7] (root's at the end)
+
+    #+BEGIN_SRC javascript
+      function walkPostOrdered(curr, path) {
+	// base case
+	if (!curr) return path
+
+	walk(curr.left, path)
+	walk(curr.right, path)
+	path.push(curr.value)
+
+	return path
+      }
+
+      export function postOrderTraverse(head) {
+	return walkPostOrdered(head, [])
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun walk-post-ordered (curr path)
+	"Recursive helper function for post-order traversal."
+	(if (null curr)
+	    path
+	    (let ((left-path (walk-post-ordered (node-left curr) path)))
+	      (let ((right-path (walk-post-ordered (node-right curr) left-path)))
+		(cons (node-value curr) right-path)))))
+
+      (defun post-order-traverse (head)
+	"Perform post-order traversal starting from HEAD."
+	(nreverse (walk-post-ordered head '())))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      ;;Don't forget to setup the tree node (you might need to reconnect the repl)
+      (defstruct node value left right)
+
+      (defun test-tree-traversals ()
+	"Test the tree traversal functions."
+	(let* ((tree (make-node :value 7
+				:left (make-node :value 23
+						 :left (make-node :value 5
+								  :left nil
+								  :right nil)
+						 :right (make-node :value 4
+								   :left nil
+								   :right nil))
+				:right (make-node :value 3
+						  :left (make-node :value 18
+								   :left nil
+								   :right nil)
+						  :right (make-node :value 21
+								    :left nil
+								    :right nil))))
+	       (expected-pre-order '(7 23 5 4 3 18 21))
+	       (expected-in-order '(5 23 4 7 18 3 21))
+	       (expected-post-order '(5 4 23 18 21 3 7))
+	       (result-pre-order (pre-order-traverse tree))
+	       (result-in-order (in-order-traverse tree))
+	       (result-post-order (post-order-traverse tree)))
+	  (run-test "Pre-order Traversal Test" result-pre-order expected-pre-order)
+	  (run-test "In-order Traversal Test" result-in-order expected-in-order)
+	  (run-test "Post-order Traversal Test" result-post-order expected-post-order)))
+
+      (test-tree-traversals)
+    #+END_SRC
+
+*** Depth/Breadth First Search
+    These kinds of traversals are like tree level visiting. Implicitly, a queue data structure will be used to perform its operations.
+     
+    This is an O(N) operation, but if we use JavaScript's "array" (which is an array list), it'll be O(N^2) - get, push/pop are O(1) and un/shift is O(N^2).
+     
+    Implementing Depth First Search on a Binary Search Tree
+
+    #+BEGIN_SRC javascript
+      function dfs(curr, item) {
+	// base cases
+	if (!curr) return false
+	if (curr.value === item) return true
+
+	// traverse right or left
+	if (curr.value < item) return dfs(curr.right, item)
+	return dfs(curr.left, item)
+      }
+
+      export function depthFirstSearch(head, item) {
+	return dfs(head, item)
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun dfs (curr item)
+	"Recursive helper function for depth-first search."
+	(cond
+	  ((null curr) nil)
+	  ((= (node-value curr) item) t)
+	  ((< (node-value curr) item) (dfs (node-right curr) item))
+	  (t (dfs (node-left curr) item))))
+
+      (defun depth-first-search (head item)
+	"Perform a depth-first search on the tree starting from HEAD for ITEM."
+	(dfs head item))
+    #+END_SRC
+
+    Implementing Breath First Search on a Binary Search Tree
+
+    #+BEGIN_SRC javascript
+      function breadthFirstSearch(head, item) {
+	// let's pretend it's a queue
+	const q = [head]
+	let hasItem = false
+
+	while (q.length) {
+	  const curr = q.shift()
+
+	  if (!curr) continue
+
+	  if (curr.value === item) {
+	    hasItem = true
+	    break
+	  }
+
+	  q.push(curr.left)
+	  q.push(curr.right)
+	}
+
+	return hasItem
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun breadth-first-search (head item)
+	"Perform a breadth-first search on the tree starting from HEAD for ITEM."
+	(let ((q (list head))
+	      (has-item nil))
+	  (loop while q
+		do (let ((curr (pop q)))
+		     (if curr
+			 (if (= (node-value curr) item)
+			     (progn
+			       (setf has-item t)
+			       (return))
+			     (progn
+			       (if (node-left curr)
+				   (setf q (append q (list (node-left curr)))))
+			       (if (node-right curr)
+				   (setf q (append q (list (node-right curr)))))))))
+		finally (return has-item))))
+    #+END_SRC
+
+    One important note: depth first search preserves the shape/structure of the tree. So while comparing two trees, we need to have that in mind.
+
+    Let's compare!
+
+    #+BEGIN_SRC javascript
+      function compareTrees(a, b) {
+	// base cases, simple problems
+	if (a === null && b === null) return true
+	if (a === null || b === null) return false
+	if (a.value !== b.value) return false
+
+	// recurse both sides
+	return compareTrees(a.left, b.left) && compareTrees(a.right, b.right)
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun compare-trees (a b)
+	"Compare two binary trees A and B for structural and value equality."
+	(cond
+	  ((and (null a) (null b)) t)  ;; Both trees are empty
+	  ((or (null a) (null b)) nil) ;; One tree is empty, the other is not
+	  ((/= (node-value a) (node-value b)) nil) ;; Values at the current nodes are different
+	  ;; Recurse both sides
+	  (t (and (compare-trees (node-left a) (node-left b))
+		  (compare-trees (node-right a) (node-right b))))))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      ;;Don't forget to setup the tree node (you might need to reconnect the repl)
+      (defstruct node value left right)
+
+      (defun test-searches ()
+	(let* ((tree1 (make-node :value 10
+				 :left (make-node :value 5
+						  :left (make-node :value 2)
+						  :right (make-node :value 7))
+				 :right (make-node :value 15
+						   :left (make-node :value 12)
+						   :right (make-node :value 20))))
+	       (tree2 (make-node :value 10
+				 :left (make-node :value 5
+						  :left (make-node :value 2)
+						  :right (make-node :value 7))
+				 :right (make-node :value 15
+						   :left (make-node :value 12)
+						   :right (make-node :value 20))))
+	       (item 7)
+	       (result (depth-first-search tree1 item))
+	       (result (breadth-first-search tree1 item))
+	       (result (compare-trees tree1 tree2)))
+	  (format t "DFS Test: Searching for ~a in tree. Result: ~a~%" item result)
+	  (format t "BFS Test: Searching for ~a in tree. Result: ~a~%" item result)
+	  (format t "Compare Trees Test: Trees are ~a~%" (if result "equal" "not equal"))))
+
+      (test-searches)
+    #+END_SRC
+
+*** Priority Queue - Heap
+    It is a complete binary tree where every child and grandchild is smaller (max heap) or larger (min heap) than the current node.
+
+    While there's no traversing (although we could traverse), whenever we insert or delete a node the tree must be adjusted.
+
+    So, if we build this tree with a node-based data structure, it would be hard to find where we need to fill values during insertion without traversing (costly). Reimagining how we can store this tree, let's put an index to each one of the nodes... It looks like an array now I guess.
+
+    #+BEGIN_SRC text
+              50
+            /    \
+          71     100
+         /  \    /  \
+       101  80  200  99
+       /
+      201
+    #+END_SRC
+
+    RESULT: [50, 71, 100, 101, 80, 200, 99, 201]
+
+    How do we establish parent/child relationships then? Maybe there's an index-based formula...
+
+    Right child: (2 * idx) + 1
+    Left child: (2 * idx) + 2
+
+    Ok, going down is settled, but how about going up to the parent? We could check odd/even to do two different operations... but there's a simpler equation (remember that the division returns only the integers):
+
+    Parent: (i - 1) / 2
+
+    Well, thinking like this makes it very easy to know where to insert any new item: LENGTH!
+
+    Heapify down always starts at index 0 (deleting the head), while heapify up starts at length. Worst case complexity is O(logN) for both operations, half the tree is always in the bottom layer.
+
+    Two important characteristics:
+    - Self-balancing
+    - Can be used for priority (thread scheduling, etc)
+
+      #+BEGIN_SRC javascript
+	class MinHeap {
+	  public length
+	  private data
+
+	  constructor() {
+	    this.length = 0
+	    this.data = []
+	  }
+
+	  insert(value) {
+	    this.data[this.length] = value
+	    this.heapifyUp(this.length)
+	    this.length++
+	  }
+
+	  delete() {
+	    if (this.length === 0) return -1
+
+	    const out = this.data[0]
+	    this.length--
+
+	    if (this.length === 0) {
+	      this.data = []
+	      return out
+	    }
+
+	    this.data[0] = this.data[this.length]
+	    this.heapifyDown(0)
+
+	    return out
+	  }
+
+	  private heapifyDown(idx) {
+	    if (idx >= this.length) return
+
+	    const lIdx = this.leftChild(idx)
+	    const rIdx = this.rightChild(idx)
+
+	    if (lIdx >= this.length) return
+
+	    const lVal = this.data[lIdx]
+	    const rVal = this.data[rIdx]
+	    const v = this.data[idx]
+
+	    if (lVal > rVal && v > rVal) {
+	      this.data[idx] = rVal
+	      this.data[rIdx] = v
+
+	      this.heapifyDown(rIdx)
+	    } else if (rVal > lVal && v > lVal) {
+	      this.data[idx] = lVal
+	      this.data[lIdx] = v
+
+	      this.heapifyDown(lIdx)
+	    }
+	  }
+
+	  private heapifyUp(idx) {
+	    if (idx === 0) return
+
+	    const p = this.parent(idx)
+	    const parentVal = this.data[p]
+	    const v = this.data[idx]
+
+	    if (parentVal > v) {
+	      this.data[idx] = parentVal
+	      this.data[p] = v
+
+	      this.heapifyUp(p)
+	    }
+	  }
+
+	  private parent(idx) {
+	    return Math.floor((idx - 1) / 2)
+	  }
+
+	  private leftChild(idx) {
+	    return idx * 2 + 1
+	  }
+
+	  private rightChild(idx) {
+	    return idx * 2 + 2
+	  }
+	}
+      #+END_SRC
+
+      #+BEGIN_SRC lisp
+	;; Define the min-heap class with length and data slots
+	(defclass min-heap ()
+	  ((length :initform 0 :accessor length)
+	   (data :initform (make-array 100 :adjustable t :fill-pointer 0) :accessor data)))
+
+	;; Function to create a new min-heap instance
+	(defun make-min-heap ()
+	  (make-instance 'min-heap))
+
+	;; Function to get the parent index
+	(defun parent (idx)
+	  (floor (/ (- idx 1) 2)))
+
+	;; Function to get the left child index
+	(defun left-child (idx)
+	  (+ (* idx 2) 1))
+
+	;; Function to get the right child index
+	(defun right-child (idx)
+	  (+ (* idx 2) 2))
+
+	;; Function to maintain the heap property from bottom to top
+	(defun heapify-up (heap idx)
+	  (unless (= idx 0)
+	    (let* ((p (parent idx))
+		   (parent-val (aref (data heap) p))
+		   (v (aref (data heap) idx)))
+	      (when (> parent-val v)
+		(rotatef (aref (data heap) idx) (aref (data heap) p))
+		(heapify-up heap p)))))
+
+	;; Function to maintain the heap property from top to bottom
+	(defun heapify-down (heap idx)
+	  (let ((l-idx (left-child idx))
+		(r-idx (right-child idx))
+		(smallest idx))
+	    (when (< l-idx (length (data heap)))
+	      (when (< (aref (data heap) l-idx) (aref (data heap) smallest))
+		(setf smallest l-idx)))
+	    (when (< r-idx (length (data heap)))
+	      (when (< (aref (data heap) r-idx) (aref (data heap) smallest))
+		(setf smallest r-idx)))
+	    (unless (= smallest idx)
+	      (rotatef (aref (data heap) idx) (aref (data heap) smallest))
+	      (heapify-down heap smallest))))
+
+	;; Function to insert a value into the heap
+	(defun insert (heap value)
+	  (vector-push-extend value (data heap))
+	  (heapify-up heap (1- (fill-pointer (data heap)))))
+
+	;; Function to delete the minimum value from the heap
+	(defun delete (heap)
+	  (if (= (fill-pointer (data heap)) 0)
+	      -1
+	      (let ((out (aref (data heap) 0)))
+		(decf (fill-pointer (data heap)))
+		(if (= (fill-pointer (data heap)) 0)
+		    (setf (data heap) (make-array 100 :adjustable t :fill-pointer 0))
+		    (progn
+		      (setf (aref (data heap) 0) (aref (data heap) (fill-pointer (data heap))))
+		      (heapify-down heap 0)))
+		out)))
+      #+END_SRC
+
+*** Trie - Re"trie"val Tree
+    Also called prefix or digital tree, it is easily thought of in the context of an auto-complete feature.
+
+    They have constant time lookup, given that the keys need some length (which ends up being the height) - it does not grow when the input grows.
+
+    Example: English Language Tree - Spell Checker
+
+    #+BEGIN_SRC text
+      [26 chars]
+      /
+      c
+      /
+      a
+      / \
+      ,*t *r
+      / \
+      ,*s  t
+      \
+      ,*e
+    #+END_SRC
+
+    Cool property: if we do a depth-first search, we get the words out alphabetically in pre-order traversal like ["cat", "cats", "cattle", "car"].
+
+    #+BEGIN_SRC lisp
+      ;; Define the trie-node class with children and is-end-of-word slots
+      (defclass trie-node ()
+	((children :initform (make-hash-table :test 'equal) :accessor children)
+	 (is-end-of-word :initform nil :accessor is-end-of-word)))
+
+      ;; Function to create a new trie-node instance
+      (defun make-trie-node ()
+	(make-instance 'trie-node))
+
+      ;; Define the trie class with a root slot
+      (defclass trie ()
+	((root :initform (make-trie-node) :accessor root)))
+
+      ;; Function to create a new trie instance
+      (defun make-trie ()
+	(make-instance 'trie))
+
+      ;; Function to insert a word into the trie
+      (defun insert-word (trie word)
+	(let ((current (root trie)))
+	  (loop for char across word
+		do (unless (gethash char (children current))
+		     (setf (gethash char (children current)) (make-trie-node)))
+		(setf current (gethash char (children current))))
+	  (setf (is-end-of-word current) t)))
+
+      ;; Function to search for a word in the trie
+      (defun search-word (trie word)
+	(let ((current (root trie)))
+	  (loop for char across word
+		do (setf current (gethash char (children current)))
+		until (null current))
+	  (and current (is-end-of-word current))))
+
+      ;; Depth-First Search (DFS) for the trie to collect all words
+      (defun dfs-trie (node prefix)
+	(let ((words '()))
+	  (when (is-end-of-word node)
+	    (push prefix words))
+	  (maphash (lambda (key value)
+		     (setf words (append words (dfs-trie value (concatenate 'string prefix (string key))))))
+		   (children node))
+	  words))
+
+      ;; Function to get all words in the trie
+      (defun get-all-words (trie)
+	(dfs-trie (root trie) ""))
+    #+END_SRC
+    
+** Graphs
+   Graphs are some amount of nodes with some amount of connections between them. All trees are graphs, but not all graphs are trees.
+
+   Terms:
+   - Cycle: starting at some node and getting back to it (at least 3 nodes)
+   - Acyclic: a graph that contains no cycles
+   - Connected: every node has a path/link to each other
+   - Directed: when there's a direction to the connection
+   - Undirected: when there's no direction to the connection
+   - Weighted: the edges have a weight associated
+   - DAG: directed, acyclic graph
+   - Node: point or vertex on the graph
+   - Edge: the connection/link/path between two nodes
+
+     Note: Big O is usually written with graph notations, such as O(V * E) where V is the vertex (node) and E the edges.
+
+     O(V * E) means that we'll check every edge of every vertex.
+
+     Example Graph:
+
+     (0)->(1)
+     ^    ^
+     |    |
+     (2)<-(3)
+
+     So, assuming connections and weights, the structure looks like this:
+
+     List:
+     [
+     [{to: 1, weight: 1}],
+     [],
+     [{to: 0, weight: 2}],
+     [
+     {to: 1, weight: 1},
+     {to: 2, weight: 4}
+     ]
+     ]
+
+     Matrix:
+     0  1  2  3
+     [
+     0   [0, 1, 0, 0]
+     1   [0, 0, 0, 0]
+     2   [2, 0, 0, 0]
+     3   [0, 1, 4, 0]
+     ]
+
+     Searching an Adjacency List
+     Of course we can search it! Matrices spend a lot of memory to represent a few connections (O(V^2)). We'll use BFS and DFS on them!
+
+   #+BEGIN_SRC lisp
+     ;; Define the graph class with an adjacency list
+     (defclass graph ()
+       ((adjacency-list :initform (make-hash-table :test 'equal) :accessor adjacency-list)))
+
+     ;; Function to create a new graph instance
+     (defun make-graph ()
+       (make-instance 'graph))
+
+     ;; Function to add an edge to the graph
+     (defun add-edge (graph from to &optional (weight 1))
+       (let ((edges (gethash from (adjacency-list graph) '())))
+	 (push (list :to to :weight weight) edges)
+	 (setf (gethash from (adjacency-list graph)) edges)))
+
+     ;; Breadth-First Search (BFS) algorithm
+     (defun bfs (graph start)
+       (let ((visited (make-hash-table :test 'equal))
+	     (queue (list start))
+	     (result '()))
+	 (setf (gethash start visited) t)
+	 (loop while queue
+	       for node = (pop queue)
+	       do (progn
+		    (push node result)
+		    (dolist (edge (gethash node (adjacency-list graph)))
+		      (let ((neighbor (getf edge :to)))
+			(unless (gethash neighbor visited)
+			  (setf (gethash neighbor visited) t)
+			  (push neighbor queue))))))
+	 (reverse result)))
+
+     ;; Depth-First Search (DFS) algorithm
+     (defun dfs (graph start)
+       (let ((visited (make-hash-table :test 'equal))
+	     (stack (list start))
+	     (result '()))
+	 (loop while stack
+	       for node = (pop stack)
+	       do (unless (gethash node visited)
+		    (setf (gethash node visited) t)
+		    (push node result)
+		    (dolist (edge (gethash node (adjacency-list graph)))
+		      (push (getf edge :to) stack))))
+	 (reverse result)))
+   #+END_SRC
+   
