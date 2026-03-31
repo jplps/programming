@@ -595,7 +595,7 @@
 	}
 
 	push(item) {
-	  this.lengh++
+	  this.length++
 	  const node = { value: item }
 
 	  if (!this.head) {
@@ -1184,8 +1184,77 @@
 	  path))
     #+END_SRC
 
+*** Merge Sort
+    Merge sort is the canonical divide-and-conquer sorting algorithm. It splits the array in half recursively until each piece has one element (which is trivially sorted), then merges the sorted halves back together. Because every split halves the input and every merge scans the full level, the complexity is always *O(N log N)* --- regardless of input order.
+
+    The trade-off versus quick sort: merge sort guarantees O(N log N) worst case, but requires O(N) extra memory for the temporary merge buffer.
+
+    #+BEGIN_SRC javascript
+      function mergeSort(arr) {
+        if (arr.length <= 1) return arr
+
+        const mid = Math.floor(arr.length / 2)
+        const left = mergeSort(arr.slice(0, mid))
+        const right = mergeSort(arr.slice(mid))
+
+        return merge(left, right)
+      }
+
+      function merge(left, right) {
+        const result = []
+        let i = 0, j = 0
+
+        while (i < left.length && j < right.length) {
+          if (left[i] <= right[j]) {
+            result.push(left[i++])
+          } else {
+            result.push(right[j++])
+          }
+        }
+
+        while (i < left.length) result.push(left[i++])
+        while (j < right.length) result.push(right[j++])
+
+        return result
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun merge-halves (left right)
+        "Merge two sorted lists into a single sorted list."
+        (cond
+          ((null left) right)
+          ((null right) left)
+          ((<= (first left) (first right))
+           (cons (first left) (merge-halves (rest left) right)))
+          (t
+           (cons (first right) (merge-halves left (rest right))))))
+
+      (defun merge-sort (lst)
+        "Sort LST using the merge sort algorithm."
+        (if (<= (length lst) 1)
+            lst
+            (let* ((mid (floor (length lst) 2))
+                   (left (merge-sort (subseq lst 0 mid)))
+                   (right (merge-sort (subseq lst mid))))
+              (merge-halves left right))))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      (defun test-merge-sort ()
+        (run-test "Merge sort empty" (merge-sort '()) '())
+        (run-test "Merge sort single" (merge-sort '(1)) '(1))
+        (run-test "Merge sort sorted" (merge-sort '(1 2 3 4 5)) '(1 2 3 4 5))
+        (run-test "Merge sort reversed" (merge-sort '(5 4 3 2 1)) '(1 2 3 4 5))
+        (run-test "Merge sort random" (merge-sort '(3 1 4 1 5 9 2 6)) '(1 1 2 3 4 5 6 9)))
+
+      (test-merge-sort)
+    #+END_SRC
+
 *** Quick Sort
-    There's more detailed explanations about merge sort, but this focuses on the divide and conquer strategy (splitting the input into chunks, and solving things faster in smaller subsets).
+    Quick sort is another divide-and-conquer strategy: pick a pivot, partition the array so lesser values sit left and greater values sit right, then recurse on each half.
 
     Of course, quick sort has a deceiving name. If you have a reversed array and pick the last value, things can pass from O(N) to O(N^2).
 
@@ -1393,7 +1462,7 @@
     2. Visit Node
     3. Recurse Right
        
-    RESULT: [5, 4, 23, 7, 18, 3, 21] (root's at the middle)
+    RESULT: [5, 23, 4, 7, 18, 3, 21] (root's at the middle)
 
     #+BEGIN_SRC javascript
       function walkInOrder(curr, path) {
@@ -1906,99 +1975,377 @@
     #+END_SRC
     
 ** Graphs
-   Graphs are some amount of nodes with some amount of connections between them. All trees are graphs, but not all graphs are trees.
+   Graphs are a set of nodes (vertices) with connections (edges) between them. All trees are graphs, but not all graphs are trees --- graphs can have cycles, multiple paths between nodes, and edges with weights.
 
-   Terms:
-   - Cycle: starting at some node and getting back to it (at least 3 nodes)
+   Terminology:
+   - Cycle: a path that starts and ends at the same node (at least 3 nodes)
    - Acyclic: a graph that contains no cycles
-   - Connected: every node has a path/link to each other
-   - Directed: when there's a direction to the connection
-   - Undirected: when there's no direction to the connection
-   - Weighted: the edges have a weight associated
-   - DAG: directed, acyclic graph
-   - Node: point or vertex on the graph
-   - Edge: the connection/link/path between two nodes
+   - Connected: every node has a path to every other node
+   - Directed: edges have a direction (A -> B does not imply B -> A)
+   - Undirected: edges have no direction (A -- B implies both ways)
+   - Weighted: edges carry a numeric cost
+   - DAG: directed acyclic graph
+   - Node/Vertex: a point on the graph
+   - Edge: a connection between two nodes
 
-     Note: Big O is usually written with graph notations, such as O(V * E) where V is the vertex (node) and E the edges.
+   Big-O for graph algorithms is typically expressed with V (vertices) and E (edges). O(V + E) means we visit every vertex and traverse every edge once.
 
-     O(V * E) means that we'll check every edge of every vertex.
+*** Representation
+    There are two common ways to store a graph in memory.
 
-     Example Graph:
+    Example graph:
 
-     (0)->(1)
-     ^    ^
-     |    |
-     (2)<-(3)
+    #+BEGIN_SRC text
+      (0)->(1)
+       ^    ^
+       |    |
+      (2)<-(3)
+    #+END_SRC
 
-     So, assuming connections and weights, the structure looks like this:
+**** Adjacency List
+     Each vertex stores a list of its outgoing edges. Space-efficient for sparse graphs: O(V + E).
 
-     List:
-     [
-     [{to: 1, weight: 1}],
-     [],
-     [{to: 0, weight: 2}],
-     [
-     {to: 1, weight: 1},
-     {to: 2, weight: 4}
-     ]
-     ]
+     #+BEGIN_SRC text
+       0: [{to: 1, weight: 1}]
+       1: []
+       2: [{to: 0, weight: 2}]
+       3: [{to: 1, weight: 1}, {to: 2, weight: 4}]
+     #+END_SRC
 
-     Matrix:
-     0  1  2  3
-     [
-     0   [0, 1, 0, 0]
-     1   [0, 0, 0, 0]
-     2   [2, 0, 0, 0]
-     3   [0, 1, 4, 0]
-     ]
+**** Adjacency Matrix
+     A V x V matrix where cell [i][j] holds the edge weight (0 means no edge). Fast edge lookup O(1), but O(V^2) space regardless of how few edges exist.
 
-     Searching an Adjacency List
-     Of course we can search it! Matrices spend a lot of memory to represent a few connections (O(V^2)). We'll use BFS and DFS on them!
+     #+BEGIN_SRC text
+           0  1  2  3
+       0 [ 0  1  0  0 ]
+       1 [ 0  0  0  0 ]
+       2 [ 2  0  0  0 ]
+       3 [ 0  1  4  0 ]
+     #+END_SRC
 
-   #+BEGIN_SRC lisp
-     ;; Define the graph class with an adjacency list
-     (defclass graph ()
-       ((adjacency-list :initform (make-hash-table :test 'equal) :accessor adjacency-list)))
+     For most problems, adjacency lists are preferred unless the graph is dense (close to V^2 edges).
 
-     ;; Function to create a new graph instance
-     (defun make-graph ()
-       (make-instance 'graph))
+*** Graph Implementation
 
-     ;; Function to add an edge to the graph
-     (defun add-edge (graph from to &optional (weight 1))
-       (let ((edges (gethash from (adjacency-list graph) '())))
-	 (push (list :to to :weight weight) edges)
-	 (setf (gethash from (adjacency-list graph)) edges)))
+    #+BEGIN_SRC javascript
+      class Graph {
+        constructor() {
+          this.adjacencyList = new Map()
+        }
 
-     ;; Breadth-First Search (BFS) algorithm
-     (defun bfs (graph start)
-       (let ((visited (make-hash-table :test 'equal))
-	     (queue (list start))
-	     (result '()))
-	 (setf (gethash start visited) t)
-	 (loop while queue
-	       for node = (pop queue)
-	       do (progn
-		    (push node result)
-		    (dolist (edge (gethash node (adjacency-list graph)))
-		      (let ((neighbor (getf edge :to)))
-			(unless (gethash neighbor visited)
-			  (setf (gethash neighbor visited) t)
-			  (push neighbor queue))))))
-	 (reverse result)))
+        addVertex(vertex) {
+          if (!this.adjacencyList.has(vertex)) {
+            this.adjacencyList.set(vertex, [])
+          }
+        }
 
-     ;; Depth-First Search (DFS) algorithm
-     (defun dfs (graph start)
-       (let ((visited (make-hash-table :test 'equal))
-	     (stack (list start))
-	     (result '()))
-	 (loop while stack
-	       for node = (pop stack)
-	       do (unless (gethash node visited)
-		    (setf (gethash node visited) t)
-		    (push node result)
-		    (dolist (edge (gethash node (adjacency-list graph)))
-		      (push (getf edge :to) stack))))
-	 (reverse result)))
-   #+END_SRC
-   
+        addEdge(from, to, weight = 1) {
+          this.addVertex(from)
+          this.addVertex(to)
+          this.adjacencyList.get(from).push({ to, weight })
+        }
+
+        getNeighbors(vertex) {
+          return this.adjacencyList.get(vertex) || []
+        }
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defclass graph ()
+        ((adjacency-list :initform (make-hash-table :test 'equal) :accessor adjacency-list)))
+
+      (defun make-graph ()
+        (make-instance 'graph))
+
+      (defun add-vertex (graph vertex)
+        (unless (gethash vertex (adjacency-list graph))
+          (setf (gethash vertex (adjacency-list graph)) '())))
+
+      (defun add-edge (graph from to &optional (weight 1))
+        (add-vertex graph from)
+        (add-vertex graph to)
+        (push (list :to to :weight weight)
+              (gethash from (adjacency-list graph))))
+
+      (defun get-neighbors (graph vertex)
+        (gethash vertex (adjacency-list graph) '()))
+    #+END_SRC
+
+*** Breadth-First Search (BFS)
+    BFS explores a graph level by level using a queue. Starting from a source node, it visits all direct neighbors first, then their neighbors, and so on. This guarantees finding the shortest path (by number of edges) in an unweighted graph.
+
+    Complexity: O(V + E) --- every vertex is enqueued once, every edge is examined once.
+
+    #+BEGIN_SRC javascript
+      function bfs(graph, start) {
+        const visited = new Set()
+        const queue = [start]
+        const result = []
+
+        visited.add(start)
+
+        while (queue.length) {
+          const node = queue.shift()
+          result.push(node)
+
+          for (const edge of graph.getNeighbors(node)) {
+            if (!visited.has(edge.to)) {
+              visited.add(edge.to)
+              queue.push(edge.to)
+            }
+          }
+        }
+
+        return result
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun graph-bfs (graph start)
+        "Breadth-first search from START. Returns a list of visited nodes in BFS order."
+        (let ((visited (make-hash-table :test 'equal))
+              (queue (list start))
+              (result '()))
+          (setf (gethash start visited) t)
+          (loop while queue
+                for node = (pop queue)
+                do (progn
+                     (push node result)
+                     (dolist (edge (get-neighbors graph node))
+                       (let ((neighbor (getf edge :to)))
+                         (unless (gethash neighbor visited)
+                           (setf (gethash neighbor visited) t)
+                           (setf queue (append queue (list neighbor))))))))
+          (nreverse result)))
+    #+END_SRC
+
+*** Depth-First Search (DFS)
+    DFS explores as deep as possible along each branch before backtracking. It uses a stack (explicit or via recursion). Useful for detecting cycles, topological sorting, and finding connected components.
+
+    Complexity: O(V + E).
+
+    #+BEGIN_SRC javascript
+      function dfs(graph, start) {
+        const visited = new Set()
+        const stack = [start]
+        const result = []
+
+        while (stack.length) {
+          const node = stack.pop()
+
+          if (visited.has(node)) continue
+          visited.add(node)
+          result.push(node)
+
+          for (const edge of graph.getNeighbors(node)) {
+            if (!visited.has(edge.to)) {
+              stack.push(edge.to)
+            }
+          }
+        }
+
+        return result
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun graph-dfs (graph start)
+        "Depth-first search from START. Returns a list of visited nodes in DFS order."
+        (let ((visited (make-hash-table :test 'equal))
+              (stack (list start))
+              (result '()))
+          (loop while stack
+                for node = (pop stack)
+                do (unless (gethash node visited)
+                     (setf (gethash node visited) t)
+                     (push node result)
+                     (dolist (edge (get-neighbors graph node))
+                       (push (getf edge :to) stack))))
+          (nreverse result)))
+    #+END_SRC
+
+    Key difference: BFS finds the shortest path in unweighted graphs (level-by-level). DFS is better for exploring all paths or detecting structure (cycles, components).
+
+    Testing BFS and DFS:
+
+    #+BEGIN_SRC lisp
+      (defun test-graph-search ()
+        (let ((g (make-graph)))
+          ;; Build the example graph:
+          ;; (0)->(1), (2)->(0), (3)->(1), (3)->(2)
+          (add-edge g 0 1)
+          (add-edge g 2 0)
+          (add-edge g 3 1)
+          (add-edge g 3 2)
+
+          ;; BFS from node 3: should visit 3 first, then its neighbors, etc.
+          (let ((bfs-result (graph-bfs g 3)))
+            (run-test "BFS from 3: visits 3 first" (first bfs-result) 3)
+            (run-test "BFS from 3: visits all reachable" (length bfs-result) 4))
+
+          ;; DFS from node 3: should visit 3 first, then go deep
+          (let ((dfs-result (graph-dfs g 3)))
+            (run-test "DFS from 3: visits 3 first" (first dfs-result) 3)
+            (run-test "DFS from 3: visits all reachable" (length dfs-result) 4))
+
+          ;; BFS from node 1: node 1 has no outgoing edges
+          (run-test "BFS from 1: only itself" (graph-bfs g 1) '(1))
+          (run-test "DFS from 1: only itself" (graph-dfs g 1) '(1))))
+
+      (test-graph-search)
+    #+END_SRC
+
+*** Dijkstra's Shortest Path
+    When edges have weights, BFS no longer guarantees the shortest path. Dijkstra's algorithm solves this for graphs with non-negative weights by greedily expanding the nearest unvisited node.
+
+    It uses a priority queue (min-heap) to always process the vertex with the smallest known distance. For each neighbor, if we find a shorter path through the current node, we update the distance and record the predecessor.
+
+    Complexity: O((V + E) log V) with a binary heap.
+
+    #+BEGIN_SRC javascript
+      function dijkstra(graph, start, end) {
+        const dist = new Map()
+        const prev = new Map()
+        const visited = new Set()
+
+        // Initialize all distances to infinity
+        for (const [vertex] of graph.adjacencyList) {
+          dist.set(vertex, Infinity)
+        }
+        dist.set(start, 0)
+
+        // Simple priority queue using an array (for clarity)
+        const pq = [{ vertex: start, dist: 0 }]
+
+        while (pq.length) {
+          // Extract minimum
+          pq.sort((a, b) => a.dist - b.dist)
+          const { vertex: curr } = pq.shift()
+
+          if (visited.has(curr)) continue
+          visited.add(curr)
+
+          if (curr === end) break
+
+          for (const edge of graph.getNeighbors(curr)) {
+            const newDist = dist.get(curr) + edge.weight
+
+            if (newDist < dist.get(edge.to)) {
+              dist.set(edge.to, newDist)
+              prev.set(edge.to, curr)
+              pq.push({ vertex: edge.to, dist: newDist })
+            }
+          }
+        }
+
+        // Reconstruct path
+        const path = []
+        let curr = end
+
+        while (curr !== undefined) {
+          path.unshift(curr)
+          curr = prev.get(curr)
+        }
+
+        if (path[0] !== start) return { dist: Infinity, path: [] }
+
+        return { dist: dist.get(end), path }
+      }
+    #+END_SRC
+
+    #+BEGIN_SRC lisp
+      (defun dijkstra (graph start end)
+        "Find the shortest path from START to END in a weighted GRAPH.
+         Returns (values distance path) where path is a list of nodes."
+        (let ((dist (make-hash-table :test 'equal))
+              (prev (make-hash-table :test 'equal))
+              (visited (make-hash-table :test 'equal))
+              (pq (list (cons 0 start)))) ; priority queue as sorted alist (cost . node)
+
+          ;; Initialize all distances to a large number
+          (maphash (lambda (k v)
+                     (declare (ignore v))
+                     (setf (gethash k dist) most-positive-fixnum))
+                   (adjacency-list graph))
+          (setf (gethash start dist) 0)
+
+          (loop while pq do
+            ;; Extract the node with smallest distance
+            (setf pq (sort pq #'< :key #'car))
+            (let* ((entry (pop pq))
+                   (curr (cdr entry)))
+
+              (unless (gethash curr visited)
+                (setf (gethash curr visited) t)
+
+                (when (equal curr end)
+                  (return-from dijkstra
+                    (values (gethash end dist)
+                            (reconstruct-path prev start end))))
+
+                (dolist (edge (get-neighbors graph curr))
+                  (let* ((neighbor (getf edge :to))
+                         (weight (getf edge :weight))
+                         (new-dist (+ (gethash curr dist) weight)))
+                    (when (< new-dist (gethash neighbor dist most-positive-fixnum))
+                      (setf (gethash neighbor dist) new-dist)
+                      (setf (gethash neighbor prev) curr)
+                      (push (cons new-dist neighbor) pq)))))))
+
+          ;; No path found
+          (values most-positive-fixnum '())))
+
+      (defun reconstruct-path (prev start end)
+        "Walk backwards through PREV from END to START to build the path."
+        (let ((path '())
+              (curr end))
+          (loop while curr do
+            (push curr path)
+            (setf curr (gethash curr prev)))
+          (if (equal (first path) start)
+              path
+              '())))
+    #+END_SRC
+
+    Testing:
+
+    #+BEGIN_SRC lisp
+      (defun test-dijkstra ()
+        ;; Build a weighted graph:
+        ;;
+        ;;   (0)--1-->(1)--3-->(3)
+        ;;    |               ^
+        ;;    2              1
+        ;;    v             /
+        ;;   (2)-----4----+
+        ;;
+        (let ((g (make-graph)))
+          (add-edge g 0 1 1)
+          (add-edge g 0 2 2)
+          (add-edge g 1 3 3)
+          (add-edge g 2 3 1)
+
+          ;; Shortest 0 -> 3: 0->2->3 = cost 3 (not 0->1->3 = cost 4)
+          (multiple-value-bind (distance path)
+              (dijkstra g 0 3)
+            (run-test "Dijkstra 0->3 distance" distance 3)
+            (run-test "Dijkstra 0->3 path" path '(0 2 3)))
+
+          ;; Shortest 0 -> 1: direct edge, cost 1
+          (multiple-value-bind (distance path)
+              (dijkstra g 0 1)
+            (run-test "Dijkstra 0->1 distance" distance 1)
+            (run-test "Dijkstra 0->1 path" path '(0 1)))
+
+          ;; Shortest 0 -> 2: direct edge, cost 2
+          (multiple-value-bind (distance path)
+              (dijkstra g 0 2)
+            (run-test "Dijkstra 0->2 distance" distance 2)
+            (run-test "Dijkstra 0->2 path" path '(0 2)))))
+
+      (test-dijkstra)
+    #+END_SRC
+
+    Note: this implementation uses a sorted list as the priority queue for clarity. For production use, a proper min-heap (like the one we built earlier) would bring the complexity down to O((V + E) log V). The sorted-list version is O(V^2) but perfectly fine for learning.
+

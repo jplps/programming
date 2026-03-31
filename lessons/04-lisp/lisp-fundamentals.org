@@ -133,6 +133,25 @@
       (+ 1 2)) ; Returns 3
   #+END_SRC
 
+* Local Bindings: let and let*
+  =let= introduces local variables whose scope is limited to the body of the form. All bindings are evaluated in parallel --- none can reference another in the same =let=.
+
+  #+BEGIN_SRC lisp
+    (let ((x 10)
+          (y 20))
+      (+ x y)) ; Returns 30
+  #+END_SRC
+
+  =let*= evaluates bindings sequentially, so each binding can refer to the ones above it:
+
+  #+BEGIN_SRC lisp
+    (let* ((x 10)
+           (y (* x 2)))    ; y can reference x
+      (+ x y)) ; Returns 30
+  #+END_SRC
+
+  Use =let= by default; reach for =let*= only when a binding depends on a previous one.
+
 * Functions
   Functions are first-class citizens in Lisp. You can define and call functions easily.
 
@@ -146,6 +165,27 @@
   #+BEGIN_SRC lisp
     (square 5) ; Returns 25
   #+END_SRC
+
+** Lambda (Anonymous Functions)
+   =lambda= creates a function without binding it to a name. Useful when you need a short, one-off function --- especially as an argument to higher-order functions like =mapcar=, =remove-if=, or =sort=.
+
+   #+BEGIN_SRC lisp
+     ;; Inline usage
+     (funcall (lambda (x) (* x x)) 5) ; Returns 25
+
+     ;; Passed to a higher-order function
+     (mapcar (lambda (x) (* x 2)) '(1 2 3)) ; Returns (2 4 6)
+
+     ;; Filtering
+     (remove-if (lambda (x) (< x 3)) '(1 2 3 4 5)) ; Returns (3 4 5)
+   #+END_SRC
+
+   Note: to call a lambda stored in a variable, use =funcall= or =apply=. This is because Common Lisp has separate namespaces for functions and variables (Lisp-2).
+
+   #+BEGIN_SRC lisp
+     (let ((double (lambda (x) (* x 2))))
+       (funcall double 5)) ; Returns 10
+   #+END_SRC
 
 * Conditionals
   Lisp uses `if` and `cond` for conditional expressions.

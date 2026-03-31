@@ -1,0 +1,1021 @@
+#+TITLE: Computer Programming
+#+DESCRIPTION: A 100% hands-on course in programming logic. Learn by doing.
+
+* Concept
+
+This repository tracks the progression from introductory to advanced programming. The work is carried out in pseudocode (Portugol Studio), C++, and Java.
+
+- Most source files are commented, describing the program flow and the narrative behind each problem.
+- Uncommented files serve as reading exercises for the language in question.
+
+The IDE used for Java projects is NetBeans. Read the in-code documentation carefully so that each example behaves as intended --- some examples depend on files being placed in the correct locations.
+
+Follow the lessons in numerical order, or jump to any topic you like. Open the file in your editor and read it closely.
+
+* Context
+
+** Programming & Development
+
+Every computing device relies on instruments designed to carry information. At the hardware level, this information is nothing more than electrical signals encoded in binary --- sequences of ones and zeros that the machine can manipulate mathematically.
+
+For the circuit to do useful work, the logic unit must receive instructions whose behaviour is already defined. Programming languages exist to let humans issue those instructions at varying levels of abstraction:
+
+#+BEGIN_EXAMPLE
+  MACHINE
+  ...
+  Low-level languages
+  High-level languages
+  ...
+  USER
+#+END_EXAMPLE
+
+Closer to the machine, languages are verbose because every operation must be spelled out in binary or near-binary form. A single byte (8 bits) already encodes enough combinations to represent numbers, letters, and special characters.
+
+Closer to the user, languages grow more expressive: fewer instructions accomplish more work. Just as letters form words and words form sentences, simple binary structures compose into arbitrarily complex programs. In this course we will build algorithms --- programs designed to solve specific problems, from the trivial to the sophisticated --- and introduce new concepts as each problem demands them.
+
+** Basic Logic
+
+A program is a sequence of executable instructions. The fundamental design principle mirrors how hardware reads data: linearly and progressively. A typical execution flow looks like this:
+
+#+BEGIN_EXAMPLE
+  START
+      Initial declarations
+  INPUT
+      Interaction with the user
+  COMPUTATION
+      Calculations dictated by the problem
+  DECISION
+      Branch according to a logical result (true / false)
+  OUTPUT
+      Interaction with the user
+  END
+      Program terminates
+#+END_EXAMPLE
+
+Not every program needs all five stages --- a trivial problem may lack decisions, computations, or even I/O --- but these building blocks are enough to express complex mathematical problems.
+
+*** Representations of an Algorithm
+
+There are three classical ways to represent the solution to a problem before writing actual code:
+
+**** Narrative Description
+
+A plain-language, step-by-step recipe for solving the problem --- comparable to a cooking recipe. Ideally, you begin here: restate the problem, then enumerate every action the program must take, adding observations that will later become code comments.
+
+**** Flowchart
+
+A visual diagram that always begins at *START* and ends at *END*. Decision structures must close from the innermost outward, ensuring that each outer structure fully encloses its children. A flowchart shows the most essential data and the paths information takes through the program.
+
+Standard shapes:
+
+- *START / END* --- oval
+- *INPUT* --- rectangle with one clipped corner (envelope shape)
+- *DECISION* --- diamond with two exits: true and false
+- *COMPUTATION* --- rectangle
+- *OUTPUT* --- rectangle with a wavy bottom edge (paper-ream shape)
+
+**** Pseudocode
+
+Pseudocode bridges natural language and real code. Portugol Studio (from UNIVALI-PR) is an educational pseudocode environment whose commands are intuitive Portuguese words. The same principle applies in any language: keywords express exactly (or nearly) what they do. For example, C++'s =while= (English) and Portugol's =enquanto= (Portuguese) both mean "as long as a given condition holds, keep executing these instructions."
+
+**** Worked Example
+
+Problem: find the sum of two numbers.
+
+Solutions:
+
+- Narrative Description:
+  1. Define which two numbers will be summed.
+  2. Add them.
+  3. Display the result.
+
+- Flowchart:
+
+#+BEGIN_EXAMPLE
+                        START
+
+  1       INPUT   ->    N1, N2
+
+  2       COMPUTE ->    N1 + N2 = R
+
+  3       OUTPUT  ->    R
+
+                        END
+#+END_EXAMPLE
+
+** Syntax and Semantics
+
+To reason about algorithms across different languages, we need two concepts from linguistics:
+
+- *Syntax* --- "the arrangement of words in a sentence and of sentences among themselves." In programming, syntax is the set of rules governing how symbols and structures must be ordered for the compiler or interpreter to accept them. Think of it as the /design/ of the language's written form.
+- *Semantics* --- "the meaning the sender intends to convey." In programming, semantics is /what/ a syntactically correct program actually does. Understanding semantics lets you predict and control the behaviour of every construct you write.
+
+A related notion is *declarations* (reserved words). These are predefined tokens that the language recognises as built-in operations. When you write code, you speak a shared language with the machine; declarations are the vocabulary it already knows.
+
+** Operators and Expressions
+
+Expressions combine operands and operators. Two fundamental categories:
+
+*** Arithmetic
+
+Numeric operands, arithmetic operators, numeric result. Standard mathematical precedence applies; use parentheses to override it.
+
+| Operator | Meaning        |
+|----------+----------------|
+| =+=      | Addition       |
+| =-=      | Subtraction    |
+| =*=      | Multiplication |
+| =/=      | Division       |
+
+*** Logical
+
+Expressions that evaluate to *true* or *false*.
+
+Logical operators:
+
+| Operator | Name        | Example       |
+|----------+-------------+---------------|
+| =and=    | Conjunction | =T and F = F= |
+| =or=     | Disjunction | =T or F = T=  |
+| =not=    | Negation    | =not T = F=   |
+
+Relational operators:
+
+| Operator | Meaning          | Example  | Result |
+|----------+------------------+----------+--------|
+| ~==~     | Equal            | =2 == 2= | T      |
+| ~>=~     | Greater or equal | =2 >= 2= | T      |
+| ~<=~     | Less or equal    | =2 <= 2= | T      |
+| ~!=~     | Not equal        | =2 != 2= | F      |
+| ~>=      | Greater          | =2 > 2=  | F      |
+| ~<=      | Less             | =2 < 2=  | F      |
+
+*** Assignment
+
+Assignment directs a value into the memory location named by a variable:
+
+#+BEGIN_EXAMPLE
+  x = 4       -- store 4 at address "x"
+  x += y      x = x + y
+  x -= y      x = x - y
+  x /= y      x = x / y
+  x *= y      x = x * y
+  x ^= y      x = x ^ y
+  x |= y      x = x | y
+  x %= y      x = x % y
+  x &= y      x = x & y
+  x++         x = x + 1      (increment)
+  x--         x = x - 1      (decrement)
+#+END_EXAMPLE
+
+** Simple Variables
+
+For the machine to handle external data correctly, the programmer must declare the /type/ of each piece of information. Different types trigger different internal behaviour --- you cannot, for instance, add a number to a name, nor store a letter where a number is expected.
+
+Some languages infer types automatically, but that requires additional runtime machinery. In Portugol Studio and C++ you must declare the type followed by the variable name.
+
+General forms:
+
+#+BEGIN_EXAMPLE
+  command( parameters )
+  command variable = value
+#+END_EXAMPLE
+
+Types (Portugol Studio):
+
+| Type       | Description                              |
+|------------+------------------------------------------|
+| =inteiro=  | Integer (whole number)                   |
+| =cadeia=   | String (sequence of characters)          |
+| =vazio=    | Void (no value --- not the same as zero) |
+| =caracter= | Single alphanumeric or special character |
+| =logico=   | Boolean (true or false)                  |
+| =real=     | Real number (decimal / floating-point)   |
+
+Usage:
+
+#+BEGIN_EXAMPLE
+  inteiro x
+  real x, y, z
+  cadeia nome
+#+END_EXAMPLE
+
+** Input and Output
+
+According to the Portugol Studio manual, "the input instruction lets the algorithm capture data from the external environment and store it in variables." User interaction is the key to control and to programming itself --- it is through this exchange that computers carry out the tasks we design.
+
+*** =escreva= (write / print)
+
+Prints whatever is inside the parentheses to the screen.
+
+#+BEGIN_EXAMPLE
+  escreva("Text displayed.")
+  escreva(x, " Text!")   -- value of x followed by the literal string
+#+END_EXAMPLE
+
+*** =leia= (read / input)
+
+After declaring a variable =x= as an integer, use =leia= to let the user supply its value at runtime.
+
+#+BEGIN_EXAMPLE
+  leia(x)
+  leia(x, y)   -- two inputs: x first, then y after Enter
+#+END_EXAMPLE
+
+*** =limpa= (clear screen)
+
+Clears the console. Useful in Portugol Studio's built-in terminal when you need a fresh display. Takes no arguments.
+
+#+BEGIN_EXAMPLE
+  limpa()
+#+END_EXAMPLE
+
+** Control Structures
+
+Control structures let the programmer intentionally divert execution flow. When the program must act differently depending on its own data, we use these constructs. Loops, in particular, let us repeat a block of instructions a controlled number of times and manipulate the order of execution.
+
+*** Selection (Conditional Branching)
+
+During execution, a set of instructions may need to run only when a condition is true.
+
+**** =se= (if)
+
+#+BEGIN_EXAMPLE
+  se(resposta = "sim") { escreva("Tchau!") }
+#+END_EXAMPLE
+
+**** =se-senao= (if-else)
+
+Exactly one of two branches executes.
+
+#+BEGIN_EXAMPLE
+  se(hora >= 6 e hora <= 18) { escreva("It's daytime.") }
+  senao { escreva("It's nighttime.") }
+#+END_EXAMPLE
+
+**** =se-senao-se= (if-else if)
+
+Chains multiple conditions, useful for range-based classification.
+
+#+BEGIN_EXAMPLE
+  se(nota >= 9)      { escreva("A") }
+  senao se(nota >= 7) { escreva("B") }
+  senao se(nota >= 5) { escreva("C") }
+  senao se(nota >= 3) { escreva("D") }
+  senao               { escreva("E") }
+#+END_EXAMPLE
+
+*** Loops
+
+A loop repeats a block of instructions until a condition is met.
+
+**** =enquanto= (while)
+
+Executes the body as long as the condition is true. The condition is tested /before/ each iteration.
+
+#+BEGIN_EXAMPLE
+  enquanto(parar != "sim")
+  {
+      escreva("Do you want to stop?")
+      leia(parar)
+  }
+#+END_EXAMPLE
+
+**** =faca-enquanto= (do-while)
+
+Guarantees at least one execution because the condition is tested /after/ the body.
+
+#+BEGIN_EXAMPLE
+  faca
+  {
+      escreva("Enter side length: ")
+      leia(lado)
+  } enquanto(lado <= 4)   -- ensures all four sides of a square are read
+#+END_EXAMPLE
+
+**** =para= (for)
+
+Accepts an initialiser, a condition, and an update expression --- ideal when a counter is needed.
+
+Example --- multiplication table of 3:
+
+#+BEGIN_EXAMPLE
+  para(inteiro i = 1; i < 10; i++)
+  {
+      tabuada = i * 3
+      escreva(tabuada, " ")
+  }
+#+END_EXAMPLE
+
+Read as: "For an integer =i= starting at 1, while =i= is less than 10, execute the body, increment =i=, and re-test."
+
+*** Loop Comparison in C++
+
+The three loop forms producing identical output (0 through 10):
+
+#+BEGIN_SRC cpp
+#include <iostream>
+#include <windows.h>  // Sleep (milliseconds)
+
+using namespace std;
+
+main() {
+    int c = 0;
+
+    // while
+    while (c <= 10) {
+        cout << c << " ";
+        c++;
+    }
+
+    cout << "\n";
+    c = 0;
+    Sleep(1000);
+
+    // do-while
+    do {
+        cout << c << " ";
+        c++;
+    } while (c <= 10);
+
+    cout << "\n";
+    c = 0;
+    Sleep(1000);
+
+    // for
+    for (int c = 0; c <= 10; c++) {
+        cout << c << " ";
+    }
+}
+#+END_SRC
+
+** Variable Validation
+
+Validate user input before proceeding so the program behaves exactly as intended.
+
+*** Example 1 --- Accept only =s= or =n=
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+main() {
+    setlocale(LC_ALL, "Portuguese");
+    char r;
+
+    cout << "I will ask if you want to continue.\n\n";
+    do {
+        cout << "Continue (s/n)? "; cin >> r;
+        if (r != 's' and r != 'S' and r != 'n' and r != 'N') {
+            cout << "Enter s or n.\n";
+        }
+    } while (r != 'n' and r != 'N');
+
+    cout << "OK.";
+}
+#+END_SRC
+
+*** Example 2 --- Full input validation (name, sex, grades)
+
+Reads a student's name, sex, and two grades. Computes and displays the average. Repeats until the user declines. Validates:
+
+1. Sex: only =m/M= or =f/F=.
+2. Grade: between 0 and 10.
+3. Continue prompt: only =s/S= or =n/N=.
+
+#+BEGIN_SRC cpp
+#include <iostream>
+#include <windows.h>
+
+using namespace std;
+
+main() {
+    setlocale(LC_ALL, "Portuguese");
+    char s, r;
+    string n;
+    float n1, n2, m;
+
+    do {
+        cout << "Name: "; cin >> n, "\n";
+        do {
+            cout << "Grade 1: "; cin >> n1, "\n";
+            if (n1 < 0 or n1 > 10) {
+                cout << "Enter a grade from 0 to 10.\n";
+            }
+        } while (n1 < 0 or n1 > 10);
+
+        do {
+            cout << "Grade 2: "; cin >> n2, "\n";
+            if (n2 < 0 or n2 > 10) {
+                cout << "Enter a grade from 0 to 10.\n";
+            }
+        } while (n2 < 0 or n2 > 10);
+
+        do {
+            cout << "Sex: "; cin >> s, "\n";
+            if (s != 'm' and s != 'M' and s != 'f' and s != 'F') {
+                cout << "Enter m/M or f/F.\n";
+            }
+        } while (s != 'm' and s != 'M' and s != 'f' and s != 'F');
+
+        m = (n1 + n2) / 2;
+        cout << "The average is " << m << ".\n";
+
+        Sleep(1000);
+
+        do {
+            cout << "Continue (s/n)? "; cin >> r;
+            if (r != 's' and r != 'S' and r != 'n' and r != 'N') {
+                cout << "Enter s or n.\n";
+            }
+        } while (r != 's' and r != 'S' and r != 'n' and r != 'N');
+    } while (r == 's' or r == 'S');
+
+    cout << "\nThank you.";
+}
+#+END_SRC
+
+** Homogeneous Composite Variables
+
+Composite variables hold multiple values of the same type. The size may be fixed at declaration, set by the user, or determined at runtime.
+
+*** Vectors (1-D Arrays)
+
+A vector has a single dimension (one index).
+
+#+BEGIN_EXAMPLE
+  type  name[size]
+
+  cadeia vetor[2] = {"a", "b"}
+  inteiro vetor[2] = {32, 44}
+#+END_EXAMPLE
+
+Example --- input, output, and calculations on a 3-element vector:
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+main() {
+    int n[3], np = 0, ni = 0, nt = 0, mn = -99999999;
+    float m;
+
+    cout << "Enter 3 integers: ";
+    for (int i = 0; i <= 2; i++) {
+        cin >> n[i];
+        if (n[i] > mn) mn = n[i];
+        nt += n[i];
+    }
+
+    m = nt / 3.0;
+
+    cout << "\nReversed: ";
+    for (int i = 2; i >= 1; i--) cout << n[i] << ", ";
+    cout << n[0] << ".";
+
+    cout << "\nLargest: " << mn << ".";
+
+    cout << "\nEven numbers: ";
+    for (int i = 0; i <= 1; i++)
+        if (n[i] % 2 == 0) { cout << n[i] << ", "; np += 1; }
+    if (n[2] % 2 == 0) { cout << n[2] << " "; np += 1; }
+    cout << "(" << np << " total).";
+
+    cout << "\nOdd numbers: ";
+    for (int i = 0; i <= 1; i++)
+        if (n[i] % 2 != 0) { cout << n[i] << ", "; ni += 1; }
+    if (n[2] % 2 != 0) { cout << n[2] << " "; ni += 1; }
+    cout << "(" << ni << " total).";
+
+    cout << "\nAverage: " << m << "!\n\n";
+}
+#+END_SRC
+
+*** Matrices (2-D Arrays)
+
+A matrix has two dimensions: rows and columns.
+
+#+BEGIN_EXAMPLE
+  type  name[rows][columns]
+  real  matrix[rows][columns]
+
+  Declaration:  int m[rows][cols];
+  Assignment:   m[r][c] = x;
+#+END_EXAMPLE
+
+Input strategy --- row by row:
+
+#+BEGIN_SRC cpp
+for (l = 0; l < nl; l++) {
+    for (c = 0; c < nc; c++) {
+        cout << "Enter value: ";
+        cin >> m[l][c];
+    }
+}
+#+END_SRC
+
+Output --- =endl= closes each row:
+
+#+BEGIN_SRC cpp
+for (l = 0; l < nl; l++) {
+    for (c = 0; c < nc; c++) {
+        cout << m[l][c] << "   ";
+    }
+    cout << endl;
+}
+#+END_SRC
+
+Full example --- user-defined matrix dimensions:
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+main() {
+    int l, c, nl, nc;
+
+    cout << "Number of rows: ";    cin >> nl;
+    cout << "Number of columns: "; cin >> nc;
+
+    int m[nl][nc];
+
+    for (l = 0; l < nl; l++)
+        for (c = 0; c < nc; c++) {
+            cout << "m[" << l << "][" << c << "] : ";
+            cin >> m[l][c];
+        }
+
+    for (l = 0; l < nl; l++) {
+        for (c = 0; c < nc; c++) cout << m[l][c] << "   ";
+        cout << endl;
+    }
+}
+#+END_SRC
+
+*** Higher-Dimensional Arrays
+
+Arrays can extend to three or more dimensions (layers of matrices).
+
+#+BEGIN_EXAMPLE
+  Declaration:  type name[index]
+  Assignment:   name[index] = value
+#+END_EXAMPLE
+
+Note: indices are zero-based (0, 1, 2, ..., N-1). The first element is =array[0]=.
+
+** Sorting Routines
+
+*** Fibonacci Sequence in a 10-Element Vector
+
+#+BEGIN_EXAMPLE
+  Fibonacci: 0 1 1 2 3 5 8 13 ... where f(n) = f(n-1) + f(n-2)
+#+END_EXAMPLE
+
+The first two positions must be initialised manually.
+
+Incremental output (with delay):
+
+#+BEGIN_SRC cpp
+#include <iostream>
+#include <windows.h>
+using namespace std;
+main() {
+    int i, f[10] = {0, 1};
+
+    cout << f[0] << " " << f[1] << " ";
+    for (i = 2; i <= 9; i++) {
+        f[i] = f[i-1] + f[i-2];
+        cout << f[i] << " ";
+        Sleep(500);
+    }
+    cout << "\n";
+}
+#+END_SRC
+
+Single output (compute first, print second):
+
+#+BEGIN_SRC cpp
+#include <iostream>
+using namespace std;
+main() {
+    int i, f[10] = {0, 1};
+
+    for (i = 2; i <= 9; i++) f[i] = f[i-1] + f[i-2];
+    for (i = 0; i <= 9; i++) cout << f[i] << " ";
+    cout << "\n";
+}
+#+END_SRC
+
+Explicit initialisation (without aggregate):
+
+#+BEGIN_SRC cpp
+#include <iostream>
+using namespace std;
+main() {
+    int i, f[10];
+
+    f[0] = 0; f[1] = 1;
+    for (i = 2; i <= 9; i++) f[i] = f[i-1] + f[i-2];
+    for (i = 0; i <= 9; i++) cout << f[i] << " ";
+    cout << "\n";
+}
+#+END_SRC
+
+*** Index Squared
+
+Build a vector of size /n/ where each element equals its index squared. Uses =pow(base, exponent)= from =<math.h>=:
+
+#+BEGIN_SRC cpp
+#include <iostream>
+#include <math.h>
+
+using namespace std;
+
+main() {
+    int t;
+    cout << "Enter the desired vector size: ";
+    cin >> t;
+
+    int v[t];
+    for (int c = 0; c <= t - 1; c++) {
+        v[c] = pow(c, 2);
+        cout << "v[" << c << "] = " << v[c] << "\n";
+    }
+}
+#+END_SRC
+
+*** Bubble Sort
+
+Bubble sort repeatedly compares adjacent elements and swaps them if they are out of order. After each full pass, the largest unsorted element "bubbles" to its final position.
+
+Key observations:
+- A temporary variable =x= performs the swap.
+- The outer loop runs =t - 1= passes.
+- The inner bound =t - 1 - c= shrinks each pass, avoiding redundant comparisons with already-sorted elements.
+- Works on strings too (compares ASCII values).
+- For descending order, reverse the comparison operator and decrement.
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+main() {
+    int c, i, x, t;
+
+    cout << "Enter the desired vector size: ";
+    cin >> t;
+
+    int v[t];
+
+    for (i = 0; i < t; i++) {
+        cout << "v[" << i << "] : ";
+        cin >> v[i];
+    }
+
+    for (c = 0; c < t - 1; c++) {
+        for (int i = 0; i < t - 1 - c; i++)
+            if (v[i] > v[i+1]) {
+                x = v[i];
+                v[i] = v[i+1];
+                v[i+1] = x;
+            }
+    }
+
+    cout << "Result:\n";
+    for (i = 0; i < t; i++) cout << "v[" << i << "] = " << v[i] << endl;
+}
+#+END_SRC
+
+** Subprograms (Functions)
+
+Functions are self-contained routines declared outside =main()=. They improve readability, enable reuse, and standardise repetitive operations. Variables declared inside a function are *local* --- visible only from their point of declaration until the function returns.
+
+*** Procedures (=void= --- no return value)
+
+A procedure performs an action but returns nothing.
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+void mensagem() {
+    cout << "Yeah!\n";
+}
+
+main() {
+    cout << "Testing subprograms\n\n";
+    mensagem();
+}
+#+END_SRC
+
+*** Procedures with Parameters
+
+Parameters make a function flexible: changing the argument changes the behaviour.
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+void mensagem(string frase) { cout << frase << endl; }
+void linha() { cout << "-------------------------------\n"; }
+void linhapersonalizada(char c, int n) {
+    for (int i = 0; i <= n; i++) cout << c;
+    cout << endl;
+}
+
+main() {
+    cout << "Testing subprograms\n\n";
+    linha();
+
+    mensagem("Yeah!\n");
+    string texto = "Oh Yeahhh!\n";
+    linha();
+
+    mensagem(texto);
+    linha();
+
+    cout << "Type something: ";
+    cin >> texto;
+    cout << "And I repeat: ";
+    mensagem(texto);
+    linha();
+
+    char letra;
+    int qtd;
+
+    cout << "Enter a character: ";  cin >> letra;
+    cout << "Enter the quantity: "; cin >> qtd;
+
+    linhapersonalizada(letra, qtd + 5);
+    linhapersonalizada('H', 30);  // constant arguments
+}
+#+END_SRC
+
+*** Functions with Return Values
+
+A function with a defined return type computes and hands back a result.
+
+#+BEGIN_SRC cpp
+#include <iostream>
+
+using namespace std;
+
+int resto(int dividendo, int divisor) {
+    int r;
+    r = dividendo % divisor;
+    return(r);
+}
+
+main() {
+    int valor, dd, ds;
+
+    cout << "Enter the dividend: "; cin >> dd;
+    cout << "Enter the divisor: ";  cin >> ds;
+
+    valor = resto(dd, ds);
+
+    cout << "Remainder = " << valor << endl;
+}
+#+END_SRC
+
+* Object-Oriented Programming
+
+** Objects and Classes
+
+A *class* is a blueprint that defines a category of objects sharing the same attributes and behaviours. An *object* is a concrete instance of a class. Methods operate on an object's attributes to change its state.
+
+- *Attributes* --- the characteristics (data) an object holds.
+- *Methods* --- the behaviours (functions/routines) an object can perform.
+
+#+BEGIN_EXAMPLE
+  Class:      Person
+  Attributes: name, age, weight, height
+  Methods:    have_birthday()  ->  increments the age attribute
+#+END_EXAMPLE
+
+** Compiled vs. Interpreted Languages
+
+- *Compiled* --- source code is translated into machine code by a compiler specific to the target platform.
+- *Interpreted* --- source code is translated at runtime by an interpreter (or virtual machine) that abstracts away platform differences.
+
+** Java Platform
+
+Java is not merely a language --- it is a platform comprising several editions:
+
+| Edition           | Focus                          |
+|-------------------+--------------------------------|
+| J2SE (Standard)   | Core desktop / general-purpose |
+| J2EE (Enterprise) | Enterprise modules and servers |
+| J2ME (Micro)      | Mobile and embedded devices    |
+| Java Web Services | Web service APIs               |
+| JavaFX            | Rich media and audio           |
+
+The platform ships two key components:
+
+- *JDK* (Java Development Kit) --- compiler, tools, and libraries for development.
+- *JRE* (Java Runtime Environment) --- the virtual machine and libraries needed to run Java programs.
+
+** Syntax and Code
+
+*** Primitive Types
+
+#+BEGIN_SRC java
+int    idade   = 10;
+float  valor   = 1.5f;
+double grande  = 1.5;      // accepts int and float values
+char   letra   = 'a';
+boolean verdade = true;     // true or false
+String nome    = "Joao";   // not primitive; holds text
+#+END_SRC
+
+*** Hello World
+
+#+BEGIN_SRC java
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Yeah!");
+    }
+}
+#+END_SRC
+
+*** Casting
+
+Java allows explicit type conversion (casting) when assigning a value of one type to a variable of another:
+
+#+BEGIN_SRC java
+int num;
+num = (int) 1.234;  // truncates to 1
+#+END_SRC
+
+** Switch-Case and User Input
+
+=switch-case= checks a variable against discrete values (choose-case). Each =case= must end with =break;= to prevent fall-through. The =default= branch executes when no case matches. For reading user input, import the =Scanner= class.
+
+** The String Class
+
+Strings have no fixed size limit. String variables hold *references* (memory addresses), not values directly.
+
+Creation with =new=:
+
+#+BEGIN_SRC java
+String x = new String("Monday");
+String y = new String("Monday");
+#+END_SRC
+
+Comparing =x == y= when both are created with =new= compares *references*, which returns =false= even if the content is identical. Without =new=, Java may intern the literals and =\=\== would return =true=. To compare *content*, use the =equals= method:
+
+#+BEGIN_SRC java
+if (x.equals(y)) {
+    System.out.println("x and y are equal.");
+} else {
+    System.out.println("x and y are different.");
+}
+#+END_SRC
+
+* Lisp Fundamentals
+
+Lisp (LISt Processing) is one of the oldest programming language families, distinguished by its fully parenthesised prefix notation. Its core properties:
+
+1. *Homoiconicity* --- code and data share the same representation (lists), so programs can manipulate their own source as ordinary data.
+2. *Macros* --- user-defined syntactic transformations that extend the language at compile time.
+3. *Garbage collection* --- automatic memory management.
+4. *Dynamic typing* --- variables are not bound to a fixed type.
+
+** Syntax at a Glance
+
+All Lisp code is composed of expressions (forms). The first element of a list is the operator; the rest are operands.
+
+#+BEGIN_SRC lisp
+(+ 1 2 3)           ; arithmetic
+(defun square (x)    ; function definition
+  (* x x))
+(if (> 3 2) 'yes 'no) ; conditional
+#+END_SRC
+
+- *Atoms* --- indivisible elements: numbers, symbols, strings.
+- *Lists* --- ordered collections built from *cons cells* (pairs of CAR/CDR pointers chained together, terminated by =nil=).
+
+#+BEGIN_EXAMPLE
+(list 1 2 3) =>  +---+---+    +---+---+    +---+-----+
+                 | 1 | *----->| 2 | *----->| 3 | nil |
+                 +---+---+    +---+---+    +---+-----+
+#+END_EXAMPLE
+
+** Key Constructs
+
+- *Quote* (='=) --- suppresses evaluation: ='(a b c)= returns the list as data.
+- *Backquote / Unquote* --- templates with selective evaluation: =`(1 2 ,(+ 1 2))= => =(1 2 3)=.
+- *Macros* --- transform code before compilation, enabling new control structures (e.g. =when=, =unless=).
+- *Recursion* --- natural fit for list processing; Lisp was designed around it.
+
+** Resources
+
+- [[http://www.lispworks.com/documentation/HyperSpec/Front/index.htm][Common Lisp HyperSpec]]
+- [[http://www.gigamonkeys.com/book/][Practical Common Lisp]]
+- [[https://mitpress.mit.edu/sites/default/files/sicp/index.html][Structure and Interpretation of Computer Programs (SICP)]]
+
+See =lessons/04-lisp/lisp-fundamentals.org= for the full lesson with detailed examples covering cons cells, =car=/=cdr= access, mutation, special forms, loops, macros, and memory management.
+
+* Algorithms and Data Structures
+
+** Big-O Complexity
+
+Big-O notation describes how an algorithm's time or memory requirements grow with input size. Three rules:
+
+1. Growth is relative to the input.
+2. Constants are dropped --- =O(10N)= simplifies to =O(N)=.
+3. We usually measure the *worst case*.
+
+Heuristic: count the loops over the input. One loop = O(N). Nested loop = O(N^2).
+
+| Name         | Notation   | Example                   |
+|--------------+------------+---------------------------|
+| Constant     | O(1)       | Array index access        |
+| Logarithmic  | O(log N)   | Binary search             |
+| Linear       | O(N)       | Single pass / linear scan |
+| Linearithmic | O(N log N) | Quick sort (average)      |
+| Quadratic    | O(N^2)     | Bubble sort, nested loops |
+
+** Data Structures
+
+*** Arrays
+
+Contiguous memory blocks. Index access, insert, and delete at a known position are *O(1)*. Key algorithms:
+
+- *Linear search* --- scan every element: O(N).
+- *Binary search* --- halve a sorted array each step: O(log N).
+- *Bubble sort* --- swap adjacent out-of-order pairs: O(N^2).
+
+Variants: *Array lists* (dynamic resizing, O(1) push/pop but O(N) shift) and *ring buffers* (O(1) at both ends via modular index arithmetic).
+
+*** Linked Lists
+
+Non-contiguous nodes linked by pointers. Insert/delete at a known node is *O(1)*, but finding it requires traversal: *O(N)*. No random access, no binary search.
+
+| Type   | Structure                      | Use case               |
+|--------+--------------------------------+------------------------|
+| Queue  | FIFO --- enqueue tail, dequeue head | Task scheduling        |
+| Stack  | FILO --- push/pop at head      | Call stacks, undo      |
+| Doubly | Prev + next pointers           | Bidirectional traversal |
+
+Rule of thumb: arrays for random access; linked lists for fast insertion at endpoints.
+
+*** Trees
+
+Hierarchical nodes. A *binary tree* has at most 2 children per node. A *BST* orders them (left < root < right).
+
+#+BEGIN_EXAMPLE
+        7
+      /   \
+    23      3
+   /  \    / \
+  5    4  18 21
+#+END_EXAMPLE
+
+Traversals (all O(N)):
+
+| Order      | Sequence              | Root position |
+|------------+-----------------------+---------------|
+| Pre-order  | visit, left, right    | First         |
+| In-order   | left, visit, right    | Middle        |
+| Post-order | left, right, visit    | Last          |
+
+Search strategies:
+
+- *DFS* on a BST: exploit ordering, go left or right: O(log N) balanced.
+- *BFS*: queue-based level-by-level visit: O(N).
+
+Advanced tree structures: *heaps* (priority queues, O(log N) insert/delete), *tries* (prefix trees, O(k) lookup by key length).
+
+*** Graphs
+
+Nodes (vertices) connected by edges. All trees are graphs, but graphs may have cycles.
+
+| Term      | Meaning                          |
+|-----------+----------------------------------|
+| Directed  | Edges have direction             |
+| Weighted  | Edges carry a cost               |
+| DAG       | Directed acyclic graph           |
+| Connected | Every node reachable from others |
+
+Represented as *adjacency lists* (space-efficient) or *adjacency matrices* (fast lookup, O(V^2) space). Searched with BFS and DFS.
+
+** Recursion
+
+A function that calls itself until a *base case* is reached. Each call pushes a frame onto the stack; the base case unwinds it. Pattern: *pre* (work) -> *recurse* (call self) -> *post* (return).
+
+Practical applications in the lesson: maze solver, quick sort (divide and conquer).
+
+-----
+
+See =lessons/05-algorithms/algorithms.org= for the full lesson with implementations in JavaScript and Common Lisp, performance benchmarks, and test suites for every data structure.
+
+-----
+
+Start with the file =00-start.java=. Open it in your preferred editor, follow the in-code documentation step by step, and work through the list.
